@@ -211,78 +211,88 @@
 ;; @code{process-lalr-spec}.
 ;; @*Note: Any symbol starting with @code{$} is automatically a terminal.
 ;; @end deffn
+;; versus original nyacc, this does not eval the argument to notice
 (define-macro (lalr-spec . args)
-  (let* ((reserved?
+  (let* ((quoted?
+          (lambda (term)
+            (and (pair? term) (eq? 'quote (car term)))))
+         (dequote
+          (lambda (term)
+            (let loop ((term term))
+              (if (pair? term)
+                  (if (eq? (car term) 'quote)
+                      (cadr term)
+                      (cons (loop (car term)) (loop (cdr term))))
+                  term))))
+         (reserved?
           (lambda (grammar-symbol)
             (eqv? #\$ (string-ref (symbol->string grammar-symbol) 0))))
          (wrap-term
           (lambda (term)
-            (cons (if (symbol? term)
-                      (if (reserved? term) 'terminal 'non-terminal)
-                      'terminal)
-                  term)))
+            (cons
+             (if (symbol? term)
+                 (if (reserved? term) 'terminal 'non-terminal)
+                 'terminal)
+             term)))
          (parse-rhs
           (lambda (terms)
             (let loop ((ol '()) (il terms))
               (if (pair? il)
                   (if (pair? (car il))
-                      (case (caar il)
-                        (($$)
-                         (loop (cons `(action #f #f ,@(cdar il)) ol) (cdr il)))
-                        (($prec)
-                         (loop (cons (cons 'prec (cadar il)) ol) (cdr il)))
-                        (($empty)
-                         (loop ol (cdr il)))
-                        ((quote)
-                         (loop (cons (cons 'terminal (cadar il)) ol) (cdr il)))
-                        (else
-                         (pperr (car il)) (quit)
-                         (error "ymm"))) ;; ((<f> ...) ???
-                      (loop (cons (wrap-term (car il)) ol) (cdr il)))
+                      (loop
+                       (case (caar il)
+                         (($$) (cons `(action #f #f ,@(cdar il)) ol))
+                         (($prec) (cons (cons 'prec (dequote (cadar il))) ol))
+                         ((quote) (cons (cons 'terminal (cadar il)) ol))
+                         (else
+                          (pperr (car il))
+                          (error "parse-rhs failure"))) ;; ((<f> ...) ???
+                       (cdr il))
+                      (loop
+                       (if (eq? '$empty (car il)) ol
+                           (cons (wrap-term (car il)) ol))
+                       (cdr il)))
                   (reverse ol)))))
          (parse-rhs-list
           (lambda (rules)
             (let loop ((ol '()) (il rules))
               (if (pair? il)
                   (loop (cons (parse-rhs (car il)) ol) (cdr il))
-                  ol))))
+                  ;;ol))))
+                  (reverse ol)))))
          (parse-grammar
           (lambda (rules)
             (let loop ((ol '()) (il rules))
               (if (pair? il)
                   (loop (acons (caar il) (parse-rhs-list (cdar il)) ol) (cdr il))
-                  ol))))
+                  ;;ol))))
+                  (reverse ol)))))
          (parse-precedence
           (lambda (terms) ;; => in reverse
             (let loop ((ol '()) (il terms))
               (if (pair? il)
-                  (if (pair? (car il))
-                      (loop (acons (caar il) (cdar il) ol) (cdr il))
-                      (loop (acons 'undecl (car il) ol) (cdr il)))
+                  (let ((il1 (dequote (car il))))
+                    (if (pair? il1)
+                        (loop (acons (car il1) (cdr il1) ol) (cdr il))
+                        (loop (cons (list 'undecl il1) ol) (cdr il))))
                   ol))))
          (lalr-spec-1
           (lambda (forms)
             (let loop ((ol '()) (il forms))
               (if (pair? il)
-                  (case (caar il)
-                    ((start notice)
-                     (loop (cons (cons (caar il) (cadar il)) ol) (cdr il)))
-                    ((expect reserve)
-                     (loop (cons (car il) ol) (cdr il)))
-                    ((prec<)
-                     (loop (acons 'precedence
-                                  (reverse (parse-precedence (cdar il))) ol)
-                           (cdr il)))
-                    ((prec>)
-                     (loop (acons 'precedence (parse-precedence (cdar il)) ol)
-                           (cdr il)))
-                    ((grammar)
-                     (loop (acons 'grammar (parse-grammar (cdar il)) ol)
-                           (cdr il)))
+                  (loop
+                   (case (caar il)
+                    ((start notice) (cons (cons (caar il) (cadar il)) ol))
+                    ((expect reserve) (cons (car il) ol))
+                    ((prec<) (acons 'precedence
+                                    (reverse (parse-precedence (cdar il))) ol))
+                    ((prec>) (acons 'precedence (parse-precedence (cdar il)) ol))
+                    ((grammar) (acons 'grammar (parse-grammar (cdar il)) ol))
                     (else (error "lalr-spec-1")))
+                   (cdr il))
                   (reverse ol))))))
     
-    `(process-lalr-spec (quote ,(lalr-spec-1 args)))))
+    `(process-lalr-spec (,'quote ,(lalr-spec-1 args)))))
 
 
 (define (atomize terminal)
@@ -1714,172 +1724,13 @@
          (cons 'rto-v (vector-map (lambda (i v) (sym->int v)) lhs-v))
          mach))))
 
-;; === grammar/machine printing ======
+;; === output routines ===============
 
 ;; @deffn {Procedure} elt->str elt terms => string
 ;; @end deffn
 (define (elt->str elt terms)
   (or (and=> (find-terminal elt terms) obj->str)
       (symbol->string elt)))
-
-#| REMOVE
-
-;; @deffn {Procedure} pp-rule indent gx [port]
-;; Pretty-print a production rule.
-;; @end deffn
-(define (pp-rule il gx . rest)
-  (let* ((port (if (pair? rest) (car rest) (current-output-port)))
-         (core (fluid-ref *lalr-core*))
-         (lhs (vector-ref (core-lhs-v core) gx))
-         (rhs (vector-ref (core-rhs-v core) gx))
-         (tl (core-terminals core)))
-    (display (substring "                     " 0 (min il 20)) port)
-    (fmt port "~A =>" lhs)
-    (vector-for-each (lambda (ix e) (fmt port " ~A" (elt->str e tl))) rhs)
-    (newline port)))
-
-;; @deffn {Procedure} pp-item item => string
-;; This could be called item->string.
-;; This needs terminals to work correctly, like pp-lalr-grammar.
-;; @end deffn
-(define (pp-item item)
-  (let* ((core (fluid-ref *lalr-core*))
-         (tl (core-terminals core))
-         (gx (car item))
-         (lhs (vector-ref (core-lhs-v core) gx))
-         (rhs (vector-ref (core-rhs-v core) gx))
-         (rhs-len (vector-length rhs)))
-    (apply
-     string-append
-     (let loop ((rx 0) (sl (list (fmtstr "~S =>" lhs))))
-       (if (= rx rhs-len)
-           (append sl (if (= -1 (cdr item)) '(" .") '()))
-           (loop (1+ rx)
-                 (append
-                  sl (if (= rx (cdr item)) '(" .") '())
-                  (let ((e (vector-ref rhs rx)))
-                    (list (string-append " " (elt->str e tl)))))))))))
-
-;; @deffn {Procedure} pp-lalr-notice spec [port]
-;; This prints the text in the @code{notice} construct of a language spec.
-;; @end deffn
-(define (pp-lalr-notice spec . rest)
-  "- Procedure: pp-lalr-notice spec [port]
-     This prints the text in the 'notice' construct of a language spec."
-  (let* ((port (if (pair? rest) (car rest) (current-output-port)))
-         (notice (assq-ref (assq-ref spec 'attr) 'notice))
-         (lines (if notice (string-split notice #\newline) '())))
-    (for-each (lambda (l) (simple-format port "  ~A\n" l)) lines)
-    (newline)))
-
-;; @deffn {Procedure} pp-lalr-grammar spec [port]
-;; Pretty-print the grammar to the specified port, or current output.
-;; @end deffn
-(define (pp-lalr-grammar spec . rest)
-  "- Procedure: pp-lalr-grammar spec [port]
-     Pretty-print the grammar to the specified port, or current output."
-  (let* ((port (if (pair? rest) (car rest) (current-output-port)))
-         (lhs-v (assq-ref spec 'lhs-v))
-         (rhs-v (assq-ref spec 'rhs-v))
-         (nrule (vector-length lhs-v))
-         (act-v (assq-ref spec 'act-v))
-         ;;(prp-v (assq-ref mach 'prp-v)) ; per-rule precedence
-         (terms (assq-ref spec 'terminals))
-         (prev-core (fluid-ref *lalr-core*)))
-    (fluid-set! *lalr-core* (make-core spec)) ; OR dynamic-wind ???
-    ;; Print out the grammar.
-    (do ((i 0 (1+ i))) ((= i nrule))
-      (let* ((lhs (vector-ref lhs-v i)) (rhs (vector-ref rhs-v i)))
-        (if #f
-            (pp-rule 0 i)
-            (begin
-              (fmt port "~A ~A =>" i lhs)
-              (vector-for-each
-               (lambda (ix e) (fmt port " ~A" (elt->str e terms)))
-               rhs)
-              ;;(fmt port "\t~S" (vector-ref act-v i))
-              (newline port)))))
-    (newline port)
-    (fluid-set! *lalr-core* prev-core)))
-
-;; @deffn {Procedure} pp-lalr-machine mach [port]
-;; Print the states of the parser with items and shift/reduce actions.
-;; @end deffn
-(define (pp-lalr-machine mach . rest)
-  "- Procedure: pp-lalr-machine mach [port]
-     Print the states of the parser with items and shift/reduce actions."
-  (let* ((port (if (pair? rest) (car rest) (current-output-port)))
-         (lhs-v (assq-ref mach 'lhs-v))
-         (rhs-v (assq-ref mach 'rhs-v))
-         (nrule (vector-length lhs-v))
-         (pat-v (assq-ref mach 'pat-v))
-         (rat-v (assq-ref mach 'rat-v))
-         (kis-v (assq-ref mach 'kis-v))
-         (kit-v (assq-ref mach 'kit-v))
-         (nst (vector-length kis-v))    ; number of states
-         (i->s (or (and=> (assq-ref mach 'siis) cdr) '()))
-         (terms (assq-ref mach 'terminals))
-         (prev-core (fluid-ref *lalr-core*)))
-    (fluid-set! *lalr-core* (make-core mach))
-    ;; Print out the itemsets and shift reduce actions.
-    (do ((i 0 (1+ i))) ((= i nst))
-      (let* ((state (vector-ref kis-v i))
-             (pat (vector-ref pat-v i))
-             (rat (if rat-v (vector-ref rat-v i) '())))
-        (fmt port "~A:" i)           ; itemset index (aka state index)
-        (for-each
-         (lambda (k-item)
-           (for-each                    ; item, print it
-            (lambda (item)
-              (fmt port "\t~A" (pp-item item))
-              ;; show lookaheads:
-              (if (and #f (negative? (cdr item)) kit-v (equal? item k-item))
-                  (fmt port " ~A"
-                       (map (lambda (tok) (elt->str tok terms))
-                            (assoc-ref (vector-ref kit-v i) k-item))))
-              (fmt port "\n"))
-            (expand-k-item k-item)))
-         state)
-        (for-each                       ; action, print it
-         (lambda (act)
-           (if (pair? (cdr act))
-               (let ((sy (car act)) (pa (cadr act)) (gt (cddr act)))
-                 (case pa
-                   ((srconf)
-                    (fmt port "\t\t~A => CONFLICT: shift ~A, reduce ~A\n"
-                         (elt->str sy terms) (car gt) (cdr gt)))
-                   ((rrconf)
-                    (fmt port "\t\t~A => CONFLICT: reduce ~A\n"
-                         (elt->str sy terms)
-                         (string-join (map number->string gt) ", reduce ")))
-                   (else
-                    (fmt port "\t\t~A => ~A ~A\n" (elt->str sy terms) pa gt))))
-               (let* ((sy (car act)) (p (cdr act))
-                      (pa (cond ((eq? #f p) 'CONFLICT)
-                                ((positive? p) 'shift)
-                                ((negative? p) 'reduce)
-                                (else 'accept)))
-                      (gt (if p (abs p) "")))
-                 (fmt port "\t\t~A => ~A ~A\n"
-                      (elt->str (assq-ref i->s sy) terms)
-                      pa gt))))
-         pat)
-        (for-each                       ; action, print it
-         (lambda (ra)
-           ;; FIX: indicate if precedence removed by user rule or default
-           (fmt port "\t\t[~A => ~A ~A] REMOVED by ~A\n"
-                (elt->str (caar ra) terms) (cadar ra) (cddar ra)
-                (case (cdr ra)
-                  ((pre) "precedence")
-                  ((ass) "associativity")
-                  ((def) "default shift")
-                  (else (cdr ra)))))
-         rat)
-        (newline)))
-    (fluid-set! *lalr-core* prev-core)
-    (values)))
-|#
-;; === output routines ===============
 
 (define* (ugly-print sexp #:optional (port (current-output-port))
                      #:key (per-line-prefix "") (width 79) trim-ends)
