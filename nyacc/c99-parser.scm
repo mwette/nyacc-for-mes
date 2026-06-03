@@ -19,18 +19,18 @@
 
 (define-module (nyacc c99-parser)
   #:export (parse-c99 parse-c99x gen-c99-lexer gen-c99x-lexer gen-c-lexer)
-  #:use-module (nyacc lex)
-  #:use-module (nyacc lang util)
-  #:use-module (nyacc parse)
-  #:use-module (nyacc lang c99 cpp)
-  #:use-module (nyacc lang c99 util))
+  #:use-module ((srfi srfi-1) #:select (fold fold-right append-reverse))
+  #:use-module ((srfi srfi-9) #:select (define-record-type))
+  #:use-module (nyacc lex-min)
+  #:use-module (nyacc parse-min)
+  #:use-module (nyacc c99-cpp)
+  #:use-module (nyacc c99-util)
+  #:use-module (nyacc sx-util)
+  #:use-module (nyacc tx-util)
+  )
 
 ;; === body ==========================
 
-(use-modules (nyacc lang sx-util))
-(use-modules (nyacc lang util))
-(use-modules ((srfi srfi-1) #:select (fold fold-right append-reverse)))
-(use-modules ((srfi srfi-9) #:select (define-record-type)))
 
 (use-modules (ice-9 pretty-print))      ; for debugging
 (define (sf fmt . args) (apply simple-format #t fmt args))

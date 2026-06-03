@@ -282,8 +282,8 @@
               (if (pair? il)
                   (loop
                    (case (caar il)
-                    ((start notice) (cons (cons (caar il) (cadar il)) ol))
-                    ((expect reserve) (cons (car il) ol))
+                    ((start notice expect) (cons (cons (caar il) (cadar il)) ol))
+                    ((reserve) (cons (car il) ol))
                     ((prec<) (acons 'precedence
                                     (reverse (parse-precedence (cdar il))) ol))
                     ((prec>) (acons 'precedence (parse-precedence (cdar il)) ol))
@@ -293,7 +293,6 @@
                   (reverse ol))))))
     
     `(process-lalr-spec (,'quote ,(lalr-spec-1 args)))))
-
 
 (define (atomize terminal)
   (if (string? terminal)

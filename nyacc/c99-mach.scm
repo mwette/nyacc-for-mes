@@ -927,7 +927,7 @@ See the file COPYING included with the this distribution.")
    #:keepers '($code-comm $lone-comm $pragma cpp-stmt typename $ident)))
 
 (define (gen-c99-files)
-  (write-lalr-actions c99-mach "c99-act.new" #:prefix "c99-")
-  (write-lalr-tables c99-mach "c99-tab.scm" #:prefix "c99-"))
+  (write-lalr-actions c99-mach "c99-act.scm.new" #:prefix "c99-")
+  (write-lalr-tables c99-mach "c99-tab.scm.new" #:prefix "c99-"))
 
 ;; --- last line ---
