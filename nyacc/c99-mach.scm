@@ -1,4 +1,4 @@
-;;; lang/c99/mach.scm - C parser grammer
+;;; nyacc/c99-mach.scm - C parser grammer
 
 ;; Copyright (C) 2015-2026 Matthew Wette
 ;;
@@ -33,13 +33,9 @@
 
 ;;; Code:
 
-(define-module (nyacc c99mach)
+(define-module (nyacc c99-mach)
   #:export (c99-spec c99-mach gen-c99-files)
-  ;;#:use-module (nyacc lang util)
-  #:use-module (nyacc lalr-min)
-  ;;#:use-module (nyacc lex)
-  ;;#:use-module (nyacc util)
-  )
+  #:use-module (nyacc lalr-min))
 
 ;; @deffn {Variable} c99-spec
 ;; This variable is the specification a-list for the hacked ISO C99 language.
