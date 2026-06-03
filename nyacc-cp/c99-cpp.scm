@@ -24,7 +24,7 @@
 
 ;;; Code:
 
-(define-module (nyacc c99-cpp)
+(define-module (nyacc-cp c99-cpp)
   #:export (cpp-line->stmt
             expand-cpp-macro-ref
             eval-cpp-cond-text          ; #if etc
@@ -37,10 +37,10 @@
   #:use-module (ice-9 match)
   #:use-module ((srfi srfi-1) #:select (append-reverse))
   #:use-module (rnrs arithmetic bitwise)
-  #:use-module (nyacc parse-min)
-  #:use-module (nyacc lex-min)
-  #:use-module (nyacc sx-util)
-  #:use-module ((nyacc tl-util) #:select (report-error)))
+  #:use-module (nyacc-cp parse-min)
+  #:use-module (nyacc-cp lex-min)
+  #:use-module (nyacc-cp sx-util)
+  #:use-module ((nyacc-cp tl-util) #:select (report-error)))
 
 (define (sferr fmt . args)
   (apply simple-format (current-error-port) fmt args))
@@ -231,8 +231,8 @@
          (else '(null)))))))
 
 
-(include-from-path "nyacc/cpp-act.scm")
-(include-from-path "nyacc/cpp-tab.scm")
+(include-from-path "nyacc-cp/cpp-act.scm")
+(include-from-path "nyacc-cp/cpp-tab.scm")
 
 (define cpp-raw-parser
   (make-lalr-parser/num (acons 'act-v cpp-act-v cpp-tables)))

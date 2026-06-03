@@ -22,7 +22,7 @@
 
 ;;; Code:
 
-(define-module (nyacc lex-min)
+(define-module (nyacc-cp lex-min)
   #:export (
             make-ident-reader
             make-ident-keyword-reader

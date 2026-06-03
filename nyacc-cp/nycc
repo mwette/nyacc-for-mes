@@ -7,7 +7,7 @@ exec guile $0 "$@"
 !#
 
 (use-modules (ice-9 pretty-print))
-(use-modules (nyacc c99-parser))
+(use-modules (nyacc-cp c99-parser))
 
 (define (main args)
   (let* ((file (car args))

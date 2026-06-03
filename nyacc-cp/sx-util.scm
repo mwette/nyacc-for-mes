@@ -27,7 +27,7 @@
 
 ;;; Code:
 
-(define-module (nyacc sx-util)
+(define-module (nyacc-cp sx-util)
   #:export (make-sx
             sx-tag sx-attr sx-tail sx-length sx-ref sx-ref*
             sx-has-attr? sx-attr-ref sx-attr-add sx-attr-add* sx-attr-set!

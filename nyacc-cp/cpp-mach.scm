@@ -17,11 +17,11 @@
 
 ;;; Code:
 
-(define-module (nyacc cpp-mach)
+(define-module (nyacc-cp cpp-mach)
   #:export (cpp-spec cpp-mach gen-cpp-files)
-  #:use-module (nyacc lalr-min)
-  #:use-module (nyacc parse-min)
-  #:use-module (nyacc lex-min)
+  #:use-module (nyacc-cp lalr-min)
+  #:use-module (nyacc-cp parse-min)
+  #:use-module (nyacc-cp lex-min)
   ;;#:use-module (nyacc lang util)
   #:use-module (rnrs arithmetic bitwise))
 

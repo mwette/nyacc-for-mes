@@ -17,7 +17,7 @@
 
 ;;; Code:
 
-(define-module (nyacc tl-util)
+(define-module (nyacc-cp tl-util)
   #:export (license-lgpl3+
             report-error
             *input-stack* push-input pop-input

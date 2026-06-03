@@ -17,16 +17,16 @@
 
 ;;; Code:
 
-(define-module (nyacc c99-parser)
+(define-module (nyacc-cp c99-parser)
   #:export (parse-c99 parse-c99x gen-c99-lexer gen-c99x-lexer gen-c-lexer)
   #:use-module ((srfi srfi-1) #:select (fold fold-right append-reverse))
   #:use-module ((srfi srfi-9) #:select (define-record-type))
-  #:use-module (nyacc lex-min)
-  #:use-module (nyacc parse-min)
-  #:use-module (nyacc c99-cpp)
-  #:use-module (nyacc c99-util)
-  #:use-module (nyacc sx-util)
-  #:use-module (nyacc tl-util)
+  #:use-module (nyacc-cp lex-min)
+  #:use-module (nyacc-cp parse-min)
+  #:use-module (nyacc-cp c99-cpp)
+  #:use-module (nyacc-cp c99-util)
+  #:use-module (nyacc-cp sx-util)
+  #:use-module (nyacc-cp tl-util)
   )
 
 ;; === body ==========================
@@ -531,8 +531,8 @@
 
 ;; === file parser ====================
 
-(include-from-path "nyacc/c99-tab.scm")
-(include-from-path "nyacc/c99-act.scm")
+(include-from-path "nyacc-cp/c99-tab.scm")
+(include-from-path "nyacc-cp/c99-act.scm")
 
 (define c99-raw-parser
   (make-lalr-parser/num

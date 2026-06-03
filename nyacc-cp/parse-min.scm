@@ -22,7 +22,7 @@
 
 ;;; Code:
 
-(define-module (nyacc parse-min)
+(define-module (nyacc-cp parse-min)
   #:export (make-lalr-parser/num))
 
 (define $default 1)                     ; sync w/ lalr-min.scm

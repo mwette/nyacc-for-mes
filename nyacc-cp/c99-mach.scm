@@ -33,9 +33,9 @@
 
 ;;; Code:
 
-(define-module (nyacc c99-mach)
+(define-module (nyacc-cp c99-mach)
   #:export (c99-spec c99-mach gen-c99-files)
-  #:use-module (nyacc lalr-min))
+  #:use-module (nyacc-cp lalr-min))
 
 ;; @deffn {Variable} c99-spec
 ;; This variable is the specification a-list for the hacked ISO C99 language.

@@ -28,7 +28,7 @@
 
 ;;; Code:
 
-(define-module (nyacc lalr-min)
+(define-module (nyacc-cp lalr-min)
   #:export (lalr-spec
             make-lalr-machine compact-machine hashify-machine
             process-lalr-spec write-lalr-actions write-lalr-tables)
