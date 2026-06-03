@@ -1,0 +1,21 @@
+#!/bin/sh
+# -*- scheme -*-
+
+GUILE_LOAD_PATH=`pwd`/..
+
+exec guile $0 "$@"
+!#
+
+(use-modules (ice-9 pretty-print))
+(use-modules (nyacc c99-parser))
+
+(define (main args)
+  (let* ((file (car args))
+         (tree (with-input-from-file file
+                 (lambda () (parse-c99 #:debug #f))))
+         )
+    (pretty-print tree)))
+
+(main (cdr (program-arguments)))
+
+;; --- last line ---
