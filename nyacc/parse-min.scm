@@ -22,13 +22,11 @@
 
 ;;; Code:
 
-(define-module (nyacc parse)
-  #:export (make-lalr-parser
-            make-lalr-parser/sym
-            make-lalr-parser/num))
+(define-module (nyacc parse-min)
+  #:export (make-lalr-parser/num))
 
-(define $default 1)                     ; sync w/ lalr.scm
-(define $error 2)                       ; sync w/ lalr.scm
+(define $default 1)                     ; sync w/ lalr-min.scm
+(define $error 2)                       ; sync w/ lalr-min.scm
 
 (use-modules (ice-9 pretty-print))
 (define (pperr exp)
@@ -80,6 +78,8 @@
            fn ln (car state) (cdr laval))))
 
 (define* (make-lalr-parser/num mach
+                               #:key
+                               env
                                (skip-if-unexp '())
                                (user-hook (lambda (tal tok stk) #f)))
   (let* ((mtab (assq-ref mach 'mtab))
@@ -88,7 +88,7 @@
          (pat-v (assq-ref mach 'pat-v))
          (xct-v (make-xct (assq-ref mach 'act-v) env))
          (ntab (acons 1 '$default (assq-ref mach 'ntab)))
-         (start (assq-ref (assq-ref mach 'mtab) '$start)))
+         (start (assq-ref (assq-ref mach 'mtab) '$start))
          (siu (map (lambda (n) (assoc-ref mtab n)) skip-if-unexp)))
     (lambda* (lexr #:key debug)
       (let loop ((state (list 0))       ; state stack

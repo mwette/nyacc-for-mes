@@ -22,11 +22,12 @@
 
 ;;; Code:
 
-(define-module (nyacc lex)
+(define-module (nyacc lex-min)
   #:export (
             make-ident-reader
             make-ident-keyword-reader
-            make-comm-reader
+            ;;make-comm-reader
+            make-comm-skipper
             make-string-reader
             make-chseq-reader
             eval-reader
@@ -740,7 +741,6 @@
          (name (string-append "%" guts)))
     (string->symbol name)))
 
-#|
 ;; @deffn chseq->canon-map cst
 ;; @deffnx chseq->canon-unmap cst
 ;; The first procedure maps a char-sequence alist to one mapping the string
@@ -756,6 +756,7 @@
 (define (chseq->canon-unmap cst)
   "See chseq"
   (map (lambda (pair) (cons (chseq->symbol (car pair)) (cdr pair))) cst))
+#|
 |#
 
 ;;.@deffn {Procedure} make-tree strtab -> tree
@@ -801,6 +802,7 @@
               (pushback (cdr cl))))
           #f))))))
 
+#|
 ;; @deffn {Procedure} make-comm-reader comm-table [#:eat-newline #t] => \
 ;;   ch bol -> ('$code-comm "..")|('$lone-comm "..") | #f
 ;; comm-table is list of cons for (start . end) comment.
@@ -887,6 +889,55 @@
           (if ep (find-end '() '() (list (mc-read-char)) ep 0) #f))))))
 
 (define read-c-comm (make-comm-reader '(("/*" . "*/") ("//" . "\n"))))
+|#
+
+(define* (make-comm-skipper comm-table #:key eat-newline)
+  ;; see make-comm-reader
+  (let ((tree (make-tree comm-table)))
+    (lambda* (ch)
+      (letrec
+          ((scol (1- (port-column (current-input-port))))
+           (mc-read-char
+            (lambda ()
+              (let ((ch (read-char)))
+                (if (eqv? ch #\\)
+                    (let ((ch (read-char)))
+                      (if (eqv? ch #\newline)
+                          (read-char)
+                          (begin (unread-char ch) #\\)))
+                    ch))))
+           (match-beg
+            (lambda (cl node)
+              (cond
+               ((eof-object? (car cl)) #f)
+               ((assq-ref node (car cl)) =>
+                (lambda (n) (match-beg (cons (mc-read-char) cl) n)))
+               ((assq-ref node 'else) =>
+                (lambda (res) (unread-char (car cl)) res))
+               (else
+                (let pushback ((cl cl))
+                  (unless (null? (cdr cl))
+                    (unread-char (car cl))
+                    (pushback (cdr cl))))
+                #f))))
+           (find-end 
+            (lambda (sl il ps px)
+              (cond
+               ((eq? px (string-length ps)) ; can Guile optimize this?
+                (if (and (not eat-newline) (eq? #\newline (car sl)))
+                    (unread-char #\newline))
+                #t)
+               ((null? il) (find-end sl (cons (mc-read-char) il) ps px))
+               ((eof-object? (car il))
+                (if (char=? (string-ref ps px) #\newline) #t
+                    (throw 'nyacc-error "open comment")))
+               ((eqv? (car il) (string-ref ps px))
+                (find-end (cons (car il) sl) (cdr il) ps (1+ px)))
+               (else
+                (let ((il1 (append-reverse sl il)))
+                  (find-end '() (cdr il1) ps 0)))))))
+        (let ((ep (match-beg (list ch) tree))) ;; ep=end pattern (e.g., "*/")
+          (if ep (find-end '() (list (mc-read-char)) ep 0) #f))))))
 
 ;; @deffn {Procedure} filter-mt p? al => al
 ;; Filter match-table based on cars of al.
@@ -902,84 +953,5 @@
 ;; Map cars of al.
 ;; @end deffn
 (define (map-mt f al) (map (lambda (x) (cons (f (car x)) (cdr x))) al))
-
-#|
-;; @deffn {Procedure} make-lexer-generator match-table => lexer-generator
-;; @example
-;; (define gen-lexer (make-lexer-generator #:ident-reader my-id-rdr))
-;; (with-input-from-file "foo" (parse (gen-lexer)))
-;; @end example
-;;
-;; Return a thunk that returns tokens.
-;; Change this to have user pass the following routines (optionally?)
-;; read-num, read-ident, read-comm
-;; reztab = reserved ($ident, $fixed, $float ...
-;; chrtab = characters
-;; comm-reader : if parser does not deal with comments must return #f
-;;               but problem with character ..
-;; extra-reader: insert an user-defined reader, (lambda (ch loop) ...)
-;; match-table:
-;; @enumerate
-;; symbol -> (string . symbol)
-;; reserved -> (symbol . symbol)
-;; char -> (char . char)
-;; @end enumerate
-;; todo: add bol status
-;; todo: maybe separate reading of keywords from identifiers: (keywd ch) =>
-;; @end deffn
-(define* (make-lexer-generator match-table
-                               #:key
-                               ident-reader num-reader
-                               string-reader chlit-reader
-                               comm-reader comm-skipper
-                               space-chars extra-reader)
-  (let* ((read-ident (or ident-reader (make-ident-reader c:if c:ir)))
-         (read-num (or num-reader read-basic-num))
-         (read-string (or string-reader (make-string-reader #\")))
-         (read-chlit (or chlit-reader (lambda (ch) #f)))
-         (read-comm (or comm-reader (lambda (ch bol) #f)))
-         (skip-comm (or comm-skipper (lambda (ch) #f)))
-         (spaces (or space-chars " \t\r\n"))
-         (space-cs (cond ((string? spaces) (string->char-set spaces))
-                         ((list? spaces) (list->char-set spaces))
-                         ((char-set? spaces) spaces)
-                         (else (error "expecting string list or char-set"))))
-         (read-extra (or extra-reader (lambda (ch lp) #f)))
-         ;;
-         (ident-like? (make-ident-like-p read-ident))
-         ;;
-         (strtab (filter-mt string? match-table)) ; strings in grammar
-         (kwstab (filter-mt ident-like? strtab))  ; keyword strings =>
-         (keytab (map-mt string->symbol kwstab))  ; keywords in grammar
-         (chrseq (remove-mt ident-like? strtab))  ; character sequences
-         (symtab (filter-mt symbol? match-table)) ; symbols in grammar
-         (chrtab (filter-mt char? match-table))   ; characters in grammar
-         ;;
-         (read-chseq (make-chseq-reader chrseq))
-         (assc-$ (lambda (pair) (cons (assq-ref symtab (car pair)) (cdr pair)))))
-    (lambda ()
-      (let ((bol #t))
-        (lambda ()
-          (let loop ((ch (read-char)))
-            (cond
-             ((eof-object? ch) (assc-$ (cons '$end ch)))
-             ;;((eq? ch #\newline) (set! bol #t) (loop (read-char)))
-             ((read-extra ch loop))
-             ((char-set-contains? space-cs ch) (loop (read-char)))
-             ((and (eqv? ch #\newline) (set! bol #t) #f))
-             ((read-comm ch bol) =>
-              (lambda (p) (set! bol #f) (assc-$ p)))
-             ((skip-comm ch) (loop (read-char)))
-             ((read-num ch) => assc-$)    ; => $fixed or $float
-             ((read-string ch) => assc-$) ; => $string
-             ((read-chlit ch) => assc-$)  ; => $chlit
-             ((read-ident ch) =>
-              (lambda (s) (or (and=> (assq-ref keytab (string->symbol s))
-                                     (lambda (tval) (cons tval s)))
-                              (assc-$ (cons '$ident s)))))
-             ((read-chseq ch) => identity)
-             ((assq-ref chrtab ch) => (lambda (t) (cons t (string ch))))
-             (else (cons ch ch))))))))) ; should be error
-|#
 
 ;; --- last line ---

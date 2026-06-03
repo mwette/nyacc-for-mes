@@ -26,7 +26,7 @@
   #:use-module (nyacc c99-cpp)
   #:use-module (nyacc c99-util)
   #:use-module (nyacc sx-util)
-  #:use-module (nyacc tx-util)
+  #:use-module (nyacc tl-util)
   )
 
 ;; === body ==========================
@@ -46,9 +46,8 @@
   (incdirs cpi-incs set-cpi-incs!)      ; #includes
   (ptl cpi-ptl set-cpi-ptl!)            ; parent typename list
   (ctl cpi-ctl set-cpi-ctl!)            ; current typename list
-  (tna cpi-itn set-cpi-itn!)            ; inhibit typename
-  (inc-tynd cpi-itynd set-cpi-itynd!)   ; a-l of incfile => typenames
-  (inc-defd cpi-idefd set-cpi-idefd!)   ; a-l of incfile => defines
+  ;;(inc-tynd cpi-itynd set-cpi-itynd!)   ; a-l of incfile => typenames
+  ;;(inc-defd cpi-idefd set-cpi-idefd!)   ; a-l of incfile => defines
   (blev cpi-blev set-cpi-blev!))        ; curr brace/block level
 
 ;;.@deffn Procedure split-cppdef defstr => form | #f
@@ -88,6 +87,7 @@
   ;; Any entry for an include file which contains `=' is considered
   ;; a define; otherwise, the entry is a typename.
 
+  #|
   (define (split-helper helper)
     (let ((file (car helper)))
       (let loop ((tyns '()) (defs '()) (ents (cdr helper)))
@@ -96,6 +96,7 @@
          ((string-contains (car ents) "=")
           (loop tyns (cons (split-cppdef (car ents)) defs) (cdr ents)))
          (else (loop (cons (car ents) tyns) defs (cdr ents)))))))
+  |#
 
   (define (split-if-needed def tail)
     (cons (if (pair? def) def (split-cppdef def)) tail))
@@ -107,8 +108,8 @@
     (set-cpi-incs! cpi incdirs)         ; list of include dir's
     (set-cpi-ptl! cpi '())              ; list of lists of typenames
     (set-cpi-ctl! cpi '())              ; list of current typenames
-    (set-cpi-itn! cpi #f)               ; don't inhibit typename
     (set-cpi-blev! cpi 0)               ; brace/block level
+    #|
     ;; Break up the helpers into typenames and defines.
     (let loop ((itynd '()) (idefd '()) (helpers inchelp))
       (cond ((null? helpers)
@@ -123,7 +124,8 @@
     (and=> (assoc-ref (cpi-itynd cpi) "__builtin")
            (lambda (tl) (set-cpi-ctl! cpi (append (cpi-ctl cpi) tl))))
     (and=> (assoc-ref (cpi-idefd cpi) "__builtin")
-           (lambda (dl) (set-cpi-defs! cpi (append (cpi-defs cpi) dl))))
+      (lambda (dl) (set-cpi-defs! cpi (append (cpi-defs cpi) dl))))
+    |#
     cpi))
 
 (define *info* (make-parameter #f))
@@ -291,6 +293,7 @@
          (chrseq (remove-mt ident-like? strtab))  ; character sequences
          (cs-rmap (chseq->canon-map chrseq))     ; remap
          (read-chseq (make-chseq-reader cs-rmap))
+         (skip-comm (make-comm-skipper '(("/*" . "*/") ("//" . "\n"))))
          (cs-umap (chseq->canon-unmap chrseq))     ; unmap
          (symtab (append (filter-mt symbol? match-table) cs-umap))
          (t-ident (assq-ref symtab '$ident))
@@ -324,6 +327,7 @@
           (define (rem-define name)
             (set-cpi-defs! info (acons name #f (cpi-defs info))))
 
+          #|
           (define (apply-helper file)
             ;; file will include <> or "", need to strip
             (let* ((tyns (assoc-ref (cpi-itynd info) file))
@@ -332,7 +336,8 @@
                 (for-each add-typename tyns)
                 (set-cpi-defs! info (append defs (cpi-defs info))))
               tyns))
-
+          |#
+          
           (define (inc-stmt->file-spec stmt) ;; retain <> or ""
             (let* ((arg (cadr stmt)))
               (if (ident-like? arg) ;; #include MYFILE
@@ -390,7 +395,7 @@
                    (path (inc-file-spec->path spec next)))
               (if show-incs (sf "include ~A => ~S\n" spec path))
               (cond
-               ((apply-helper file) stmt)
+               ;;((apply-helper file) stmt)
                ((not path) (c99-err "not found: ~S" file))
                (else (set! bol #t)
                      (push-input (open-input-file path))
@@ -449,19 +454,14 @@
                (bol
                 (set! bol #f)
                 (cond ;; things that require bol
-                 ((read-c-comm ch #t #:skip-prefix #t) =>
-                  (lambda (p) (w/ ss p)))
                  ((read-cpp-stmt ch) =>
-                  (lambda (stmt)
-                    (cond ((pass-cpp-stmt (eval-cpp-stmt stmt)) =>
-                           (lambda (p) (w/ ss p)))
-                          (else (loop (read-char) ss)))))
+                  (lambda (stmt) (eval-cpp-stmt stmt) (loop (read-char) ss)))
                  (else (loop ch ss))))
-               ((read-c-comm ch #f #:skip-prefix #t) =>
-                (lambda (p) (w/ ss p)))
-               ((and (not (eq? (car ppxs) 'keep)) (eq? mode 'code))
+               ((skip-comm ch)
                 (loop (read-char) ss))
-               ((read-c-mclit ch) =>    ; mclit over chlit for gobject bd
+               ((not (eq? (car ppxs) 'keep))
+                (loop (read-char) ss))
+               ((read-c-chlit ch) =>
                 (lambda (p) (w/ ss p)))
                ((read-c-ident ch) =>
                 (lambda (name) (cons '$ident name)))
@@ -519,8 +519,6 @@
 ;; Routines to process specifier-lists and declarators, indended
 ;; to provide option to convert attribute-specifiers elements into
 ;; SXML attributes.  See move-attributes in util.scm.
-;;(define process-specs identity)
-;;(define process-declr identity)
 (define (process-specs exp) (move-attributes exp))
 (define (process-declr exp) (move-attributes exp))
 
@@ -533,11 +531,11 @@
 
 ;; === file parser ====================
 
-(include-from-path "nyacc/lang/c99/mach.d/c99-tab.scm")
-(include-from-path "nyacc/lang/c99/mach.d/c99-act.scm")
+(include-from-path "nyacc/c99-tab.scm")
+(include-from-path "nyacc/c99-act.scm")
 
 (define c99-raw-parser
-  (make-lalr-parser
+  (make-lalr-parser/num
    (acons 'act-v c99-act-v c99-tables)
    #:skip-if-unexp '($lone-comm $code-comm $pragma cpp-stmt)
    #:user-hook (make-user-hook (assq-ref c99-tables 'mtab))))
@@ -599,8 +597,5 @@
         (lambda (key fmt . args)
           (report-error fmt args)
           (if return-defs (values #f '()) #f))))))
-
-(include-from-path "nyacc/lang/c99/mach.d/c99x-tab.scm")
-(include-from-path "nyacc/lang/c99/mach.d/c99x-act.scm")
 
 ;; --- last line ---

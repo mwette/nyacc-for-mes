@@ -40,7 +40,7 @@
   #:use-module (nyacc parse-min)
   #:use-module (nyacc lex-min)
   #:use-module (nyacc sx-util)
-  #:use-module ((nyacc tx-util) #:select (report-error)))
+  #:use-module ((nyacc tl-util) #:select (report-error)))
 
 (define (sferr fmt . args)
   (apply simple-format (current-error-port) fmt args))
@@ -231,18 +231,16 @@
          (else '(null)))))))
 
 
-(include-from-path "cpp-act.scm")
-(include-from-path "cpp-tab.scm")
+(include-from-path "nyacc/cpp-act.scm")
+(include-from-path "nyacc/cpp-tab.scm")
 
 (define cpp-raw-parser
-  (make-lalr-parser (acons 'act-v cpp-act-v cpp-tables)))
+  (make-lalr-parser/num (acons 'act-v cpp-act-v cpp-tables)))
 
 (define (cpp-err fmt . args)
   (apply throw 'cpp-error fmt args))
 
-(define cpp-comm-skipper
-  (let ((reader (make-comm-reader '(("/*" . "*/")))))
-    (lambda (ch) (reader ch #f))))
+(define cpp-comm-skipper (make-comm-skipper '(("/*" . "*/"))))
 
 ;; generate a lexical analyzer per string
 (define gen-cpp-lexer

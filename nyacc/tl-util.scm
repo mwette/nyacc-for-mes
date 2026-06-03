@@ -1,4 +1,4 @@
-;;; /nyacc/tx-util.scm - runtime utilities for the parsers
+;;; /nyacc/tl-util.scm - runtime utilities for the parsers
 
 ;; Copyright (C) 2015-2018,2025 Matthew Wette
 ;;
@@ -17,7 +17,7 @@
 
 ;;; Code:
 
-(define-module (nyacc tx-util)
+(define-module (nyacc tl-util)
   #:export (license-lgpl3+
             report-error
             *input-stack* push-input pop-input
