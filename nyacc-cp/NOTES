@@ -1,4 +1,14 @@
-killer seems to be using alist for #defines
+killer seems to be using alist for #defines in
+
+	c99-cpp.scm: lookup-def
+
+spots for cpp-defs:
+ 1. c99-cpp.scm(lookup-def): assoc ident
+ 2. c99-cpp.scm(eval-cpp-expr)
+ 3. c99-parser.cpp(make-cpi): fold 
+ 4. c99-parser.cpp(add-define): 
+ 5. c99-parser.cpp(rem-define):
+
 
 ccrun.c:	PASS
 tccdbg.c:	PASS
