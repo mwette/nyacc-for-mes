@@ -24,26 +24,16 @@
 
 (define-module (nyacc-cp lex-min)
   #:export (
-            ;;make-ident-reader
-            ;;make-ident-keyword-reader
-            ;;make-comm-reader
             make-comm-skipper
-            ;;make-string-reader
             make-chseq-reader
-            ;;eval-reader
-            ;;read-basic-num
             read-c-ident
-            ;;read-c$-ident
-            ;;read-c-comm
             read-c-string
-            read-c-chlit read-c-mclit
+            read-c-mclit
             read-c-num
-            read-oct read-hex
-            ;;like-c-ident? like-c$-ident?
-            c-escape
+            make-ident-like-p
             cnumstr->scm
             chseq->canon-map chseq->canon-unmap
-            filter-mt remove-mt map-mt make-ident-like-p
+            filter-mt remove-mt map-mt
             c:ws c:if c:ir)
   #:use-module ((srfi srfi-1) #:select (remove append-reverse)))
 
@@ -229,6 +219,22 @@
 
 (define (wchar t)
   (case t ((#\L) '$chlit/L) ((#\u) '$chlit/u) ((#\U) '$chlit/U)))
+
+(define (read-c-chlit ch)
+  (cond
+   ((char=? ch #\')
+    (let* ((c1 (read-char))
+           (sc (string (if (eqv? c1 #\\) (read-esc-char) c1))))
+      (if (not (char=? #\' (read-char)))
+          (throw 'nyacc-error "read-c-chlit: bad char literal"))
+      (cons '$chlit sc)))
+   ((char-set-contains? c:cx ch)
+    (let ((c1 (read-char)))
+      (cond
+       ((eof-object? c1) #f)
+       ((char=? c1 #\') (cons (wchar ch) (cdr (read-c-chlit c1))))
+       (else (unread-char c1) #f))))
+   (else #f)))
 
 (define (read-c-mclit ch)
   (define (readit ch)

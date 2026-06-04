@@ -19,7 +19,7 @@
 
 (define-module (nyacc-cp c99-parser)
   #:export (parse-c99 parse-c99x gen-c99-lexer gen-c99x-lexer gen-c-lexer)
-  #:use-module ((srfi srfi-1) #:select (fold fold-right append-reverse))
+  #:use-module ((srfi srfi-1) #:select (fold fold-right))
   #:use-module ((srfi srfi-9) #:select (define-record-type))
   #:use-module (nyacc-cp lex-min)
   #:use-module (nyacc-cp parse-min)

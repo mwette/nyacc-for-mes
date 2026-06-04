@@ -21,9 +21,7 @@
   #:export (cpp-spec cpp-mach gen-cpp-files)
   #:use-module (nyacc-cp lalr-min)
   #:use-module (nyacc-cp parse-min)
-  #:use-module (nyacc-cp lex-min)
-  ;;#:use-module (nyacc lang util)
-  #:use-module (rnrs arithmetic bitwise))
+  #:use-module (nyacc-cp lex-min))
 
 (define cpp-spec
   (lalr-spec

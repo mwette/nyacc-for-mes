@@ -30,16 +30,8 @@
 (define-module (nyacc-cp sx-util)
   #:export (
             sx-ref sx-tag sx-attr sx-tail sx-cons* sx-find sx-attr-add sx-list
-            ;;make-sx
-            ;;sx-tag sx-attr sx-tail sx-length sx-ref sx-ref*
-            ;;sx-has-attr? sx-attr-ref sx-attr-add sx-attr-add* sx-attr-set!
-            ;;sx-find
-            ;;sx-split sx-split* sx-join sx-join* sx-cons sx-cons* sx-list
-            ;;sx-cons*/src sx-list/src
-            ;;sx-unitize
-            ;;sx-match sx-match-tail
             )
-  #:use-module ((srfi srfi-1) #:select (find fold fold-right append-reverse)))
+  #:use-module ((srfi srfi-1) #:select (find)))
 
 ;; @deffn {Procedure} sx-tag sx => tag
 ;; Return the tag for a tree
