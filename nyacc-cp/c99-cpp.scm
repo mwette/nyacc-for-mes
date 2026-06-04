@@ -230,7 +230,6 @@
          ((read-c-num ch) => (lambda (num) `(line ,num ,(rd-rest))))
          (else '(null)))))))
 
-
 (include-from-path "nyacc-cp/cpp-act.scm")
 (include-from-path "nyacc-cp/cpp-tab.scm")
 
@@ -240,9 +239,10 @@
 (define (cpp-err fmt . args)
   (apply throw 'cpp-error fmt args))
 
-(define skip-c-comm (make-comm-skipper '(("/*" . "*/"))))
+(define skip-c-comm (make-comm-skipper '(("/*" . "*/") ("//" . "\n"))))
 
 ;; generate a lexical analyzer per string
+;; only keywords: "defined" "__has_include__" "__has_include_next__"
 (define cpp-lexer
   (let* ((match-table cpp-mtab)
          (ident-like? (make-ident-like-p read-c-ident))
@@ -255,7 +255,6 @@
          (read-chseq (make-chseq-reader chrseq))
          (assc-$ (lambda (p) (cons (assq-ref symtab (car p)) (cdr p)))))
     (lambda ()
-      (pk
       (let loop ((ch (read-char)))
         (cond
          ((eof-object? ch) (assc-$ (cons '$end "#<eof>")))
@@ -264,10 +263,12 @@
          ((read-c-num ch) => assc-$)
          ((read-c-string ch) => assc-$)
          ((read-c-chlit ch) => assc-$)
-         ((read-c-ident ch) => (lambda (name) (cons '$ident name)))
+         ((read-c-ident ch) =>
+          (lambda (s) (or (and=> (assq-ref keytab (string->symbol s))
+                            (lambda (tval) (cons tval s)))
+                          (assc-$ (cons '$ident s)))))
          ((read-chseq ch) => identity)
          (else (cons ch ch))))))) ; should be error
-  )
 
 ;; @deffn {Procedure} parse-cpp-expr text => tree
 ;; Given a string returns a cpp parse tree.  This is called by
@@ -280,7 +281,7 @@
       'nyacc-error
     (lambda ()
       (with-input-from-string text
-        (lambda () (cpp-raw-parser cpp-lexer #:debug #t))))
+        (lambda () (cpp-raw-parser cpp-lexer))))
     (lambda (key fmt . args)
       (apply throw 'cpp-error fmt args))))
 
