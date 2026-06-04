@@ -13,7 +13,7 @@ exec guile $0 "$@"
 
 (gen-c99-files)
 (gen-cpp-files)
-(system* '("touch" "c99-parser.scm"))
-(system* '("touch" "c99-cpp.scm"))
+(system* "touch" "c99-parser.scm")
+(system* "touch" "c99-cpp.scm")
 
 ;;; --- last line ---

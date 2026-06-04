@@ -6,7 +6,7 @@
             *input-stack* push-input pop-input
             reset-input-stack
             make-tl tl->list
-            tl-append tl-insert
+            tl-append tl-insert tl-extend
             sx-ref sx-tag sx-attr sx-tail sx-cons* sx-find sx-attr-add sx-list
             move-attributes attrl->attrs attrs->attrl extract-attr
             vector-map)
@@ -247,7 +247,6 @@
 ;; (attributes "__packed__;...")
 ;; OR
 ;; () => ()
-(display "parser-utils.scm: check attrl->attrs use of match vs sx-match\n")
 (define (attrl->attrs attr-list)
   (define (spec->str spec)
     (match spec

@@ -36,7 +36,7 @@
   #:use-module ((srfi srfi-1)
                 #:select (lset-union lset-intersection lset-difference))
   #:use-module ((srfi srfi-43)
-                #:select (vector-any vector-fold vector-for-each vector-map)
+                #:select (vector-any vector-fold vector-for-each vector-map))
   #:use-module (nyacc-cp common-utils))
 
 ;; === procedures from (nyacc util) ============================================
