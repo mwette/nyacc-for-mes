@@ -413,7 +413,7 @@
                 (loop (read-char)))
                ((not (eq? (car ppxs) 'keep))
                 (loop (read-char)))
-               ((read-c-chlit ch) => identity)
+               ((read-c-mclit ch) => identity)
                ((read-c-ident ch) =>
                 (lambda (name) (cons '$ident name)))
                ((read-c-num ch) => identity)

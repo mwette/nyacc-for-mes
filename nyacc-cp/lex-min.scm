@@ -24,21 +24,22 @@
 
 (define-module (nyacc-cp lex-min)
   #:export (
-            make-ident-reader
-            make-ident-keyword-reader
+            ;;make-ident-reader
+            ;;make-ident-keyword-reader
             ;;make-comm-reader
             make-comm-skipper
-            make-string-reader
+            ;;make-string-reader
             make-chseq-reader
-            eval-reader
-            read-basic-num
-            read-c-ident read-c$-ident
+            ;;eval-reader
+            ;;read-basic-num
+            read-c-ident
+            ;;read-c$-ident
             ;;read-c-comm
             read-c-string
             read-c-chlit read-c-mclit
             read-c-num
             read-oct read-hex
-            like-c-ident? like-c$-ident?
+            ;;like-c-ident? like-c$-ident?
             c-escape
             cnumstr->scm
             chseq->canon-map chseq->canon-unmap
@@ -91,43 +92,7 @@
     (lambda (ch)
       (char-set-contains? cs ch))))
 
-(define lxlsr reverse-list->string)
 (define rls reverse-list->string)       ; reverse-list->string
-
-;; @deffn {Procedure} eval-reader reader string => result
-;; For test and debug, this procedure will evaluate a reader on a string.
-;; A reader is a procedure that accepts a single character argument intended
-;; to match a specific character sequence.  A reader will read more characters
-;; by evaluating @code{read-char} until it matches or fails.  If it fails, it
-;; will pushback all characters read via @code{read-char} and return @code{#f}.
-;; If it succeeds the input pointer will be at the position following the
-;; last matched character.
-;; @end deffn
-(define (eval-reader reader string)
-  (with-input-from-string string
-    (lambda () (reader (read-char)))))
-
-;; @deffn {Procedure} make-space-skipper chset => proc
-;; This routine will generate a reader to skip whitespace.
-;; @end deffn
-(define (make-space-skipper chset)
-  (lambda (ch)
-    (if (char-set-contains? chset ch)
-        (let loop ((ch (read-char)))
-          (cond
-           ((char-set-contains? chset ch)
-            (loop (read-char)))
-           (else
-            (unread-char ch)
-            #t)))
-        #f)))
-         
-;; @deffn {Procedure} skip-c-space ch => #f | #t
-;; If @code{ch} is space, skip all spaces, then return @code{#t}, else
-;; return @code{#f}.
-;; @end deffn
-(define skip-c-space (make-space-skipper c:ws))
-
 
 ;; @deffn {Procedure} make-ident-reader cs-first cs-rest => ch -> #f|string
 ;; For identifiers, given the char-set for first character and the char-set
@@ -144,11 +109,11 @@
         (cond
          ((eof-object? ch)
           (if (null? chl) #f
-              (lxlsr chl)))
+              (rls chl)))
          ((char-set-contains? cs-rest ch)
           (loop (cons ch chl) (read-char)))
          (else (unread-char ch)
-               (lxlsr chl)))))
+               (rls chl)))))
      (else #f))))
 
 ;; @deffn {Procedure} make-ident-like-p ident-reader
@@ -165,72 +130,10 @@
                             (eof-object? (read-char)))))
                    #t)))
 
-;; @deffn {Procedure} make-ident-keyword-reader ident-reader match-table [tval]
-;; Generate a procedure from an ident reader and a parser match-table
-;; that takes a character and returns @code{#f} or a pair for the parser.
-;; The pairs are of the form @code{($ident . "abc")} or @code{(if . "if")}.
-;; The optional token is @code{'$ident}.
-;; @end deffn
-(define* (make-ident-keyword-reader ident-reader match-table
-                                    #:optional (tval '$ident))
-  (let ((ident-like? (make-ident-like-p ident-reader))
-        (ident-id (assoc-ref match-table tval)))
-    (let loop ((kt '()) (mt match-table))
-      (if (null? mt)
-          (lambda (ch)
-            (and=> (ident-reader ch)
-                   (lambda (s) (cons (or (assoc-ref kt s) ident-id) s))))
-          (loop (if (ident-like? (caar mt)) (cons (car mt) kt) kt) (cdr mt))))))
-         
 ;; @deffn {Procedure} read-c-ident ch => #f|string
 ;; If ident pointer at following char, else (if #f) ch still last-read.
 ;; @end deffn
 (define read-c-ident (make-ident-reader c:if c:ir))
-
-;; @deffn {Procedure} like-c-ident? ch 
-;; Determine if a string qualifies as a C identifier.
-;; @end deffn
-(define like-c-ident? (make-ident-like-p read-c-ident))
-
-;; @deffn {Procedure} read-c$-ident ch => #f|string
-;; Similar to @code{read-c-ident}: it allows initial @code{$}.
-;; @end deffn
-(define read-c$-ident
-  (let ((cs (char-set-copy c:if)))
-    (string->char-set! "$" cs)
-    (make-ident-reader cs c:ir)))
-
-;; @deffn {Procedure} like-c$-ident? ch 
-;; Similar to @code{like-c-ident}: it allows initial @code{$}.
-;; @end deffn
-(define like-c$-ident? (make-ident-like-p read-c$-ident))
-
-;; @deffn {Procedure} make-string-reader delim [tval]
-;; Generate a reader for strings for delimiter.  @var{delim} can be a char
-;; or a list.  Closing quote escaped with @code{\} is skipped.
-;; @example
-;; (make-string-reader '((#\" . #\") (#\{ #\})))
-;; @end example
-;; Pretty printers should be set up to stuff things back.
-;; @end deffn
-(define* (make-string-reader delim #:optional (tval '$string))
-  (define (fail) (throw 'nyacc-error "eof reading string"))
-  (define (doit nd)
-    (let loop ((cl '()) (ch (read-char)))
-      (cond ((eof-object? ch) (fail))
-            ((char=? ch #\\)
-             (let ((c1 (read-char)))
-               (cond
-                ((eof-object? c1) fail)
-                ;;((char=? c1 #\t) (loop (cons #\tab cl) (read-char)))
-                ;;((char=? c1 #\n) (loop (cons #\newline cl) (read-char)))
-                ;;((char=? c1 #\r) (loop (cons #\return cl) (read-char)))
-                (else (loop (cons* c1 #\\ cl) (read-char))))))
-            ((char=? ch nd) (if tval (cons tval (rls cl)) (rls cl)))
-            (else (loop (cons ch cl) (read-char))))))
-  (if (char? delim)
-      (lambda (ch) (and (char=? ch delim) (doit ch)))
-      (lambda (ch) (and=> (assq-ref delim ch) doit))))
 
 ;; @deffn {Procedure} read-oct => 123 | #f
 ;; Read octal number, assuming @code{\0} have already been read.
@@ -307,12 +210,6 @@
               ((eq? ch #\") (if tval (cons tval (rls cl)) (rls cl)))
               (else (loop (cons ch cl) (read-char)))))))
 
-;; @deffn {Procedure} make-chlit-reader
-;; Generate a reader for character literals. NOT DONE.
-;; For C, this reads @code{'c'} or @code{'\n'}.
-;; @end deffn
-(define (make-chlit-reader . rest) (error "NOT IMPLEMENTED"))
-
 (define (read-esc-char)
   (let ((c2 (read-char)))
     (case c2
@@ -333,31 +230,6 @@
 (define (wchar t)
   (case t ((#\L) '$chlit/L) ((#\u) '$chlit/u) ((#\U) '$chlit/U)))
 
-;; @deffn {Procedure} read-c-chlit ch
-;; @example
-;; ... 'c' ... => (read-c-chlit #\') => '($chlit . #\c)
-;; @end example
-;; This will return @code{$chlit}, $code{$chlit/L} for @code{wchar_t},
-;; @code{$chlit/u} for @code{char16_t}, or @code{$chlit/U} for @code{char32_t}.
-;; @end deffn
-(define (read-c-chlit ch)
-  (cond
-   ((char=? ch #\')
-    (let* ((c1 (read-char))
-           (sc (string (if (eqv? c1 #\\) (read-esc-char) c1))))
-      (if (not (char=? #\' (read-char)))
-          (throw 'nyacc-error "read-c-chlit: bad char literal"))
-      (cons '$chlit sc)))
-   ((char-set-contains? c:cx ch)
-    (let ((c1 (read-char)))
-      (cond
-       ((eof-object? c1) #f)
-       ((char=? c1 #\') (cons (wchar ch) (cdr (read-c-chlit c1))))
-       (else (unread-char c1) #f))))
-   (else #f)))
-
-;; read multi-char literal : braindamage in gobject/glib-types.h
-;; IIRC only pango uses this as of 2026
 (define (read-c-mclit ch)
   (define (readit ch)
     (let loop ((chl '()) (ch ch))
@@ -374,100 +246,6 @@
        ((char=? c1 #\') (cons (wchar ch) (cdr (read-c-chlit c1))))
        (else (unread-char c1) #f))))
    (else #f)))
-
-(define (fix-dot l) (if (char=? #\. (car l)) (cons #\0 l) l))
-
-#|
-;; @deffn {Procedure} read-basic-num ch [#:signed #t] => #f|pair
-;; Reader for numbers in most C-like languages.  The @var{pair} returned
-;; is one of @code{($fixed . "1")} or @code{($float . "1.0")}.
-;; The @code{fixed} form include decimal, hexidecimal (starting with "0x"),
-;; and binary (starting with "0b") integers.  The @code{float} form is
-;; floating point.  This will not generate exceptions.  Normally this
-;; reads unsigned numbers; with the @code{#:signed #t} option, leading
-;; @code{-} is allowed.
-;; @end deffn
-(define* (read-basic-num ch #:key signed)
-  (define (unread-chl chl)
-    (let lp ((l chl)) (unless (null? l) (unread-char (car l)) (lp (cdr l)))))
-  (let loop ((chl '()) (ty #f) (st 10) (ch ch))
-    ;;(sf "lp: ch=~S st=~S ty=~S chl=~S\n" ch st ty chl)
-    (case st
-      ((10) ;; entry
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char=? #\0 ch) (loop (cons ch chl) '$fixed 11 (read-char))) 
-        ((char-numeric? ch) (loop chl '$fixed 20 ch))
-        ((char=? #\. ch) (loop (cons ch chl) ty 12 (read-char)))
-        ((and signed (char=? #\- ch)) (loop (cons ch chl) ty 13 (read-char)))
-        (else #f)))
-      ((11) ;; got 0/fixed, allow x, b
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char=? ch #\.) (loop (cons ch chl) '$float 30 (read-char)))
-        ((memq ch '(#\X #\x)) (loop (cons ch chl) ty 21 (read-char)))
-        ((memq ch '(#\B #\b)) (loop (cons ch chl) ty 22 (read-char)))
-        ((char-oct? ch) (loop (cons ch chl) ty 23 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((12) ;; got `.'
-       (cond
-        ((eof-object? ch) #f)
-        ((char-numeric? ch) (loop (cons ch chl) '$float 30 (read-char)))
-        (else (unread-char ch) #f)))
-      ((13) ;; got '-'
-       (cond
-        ((eof-object? ch) (unread-char #\-) #f)
-        ((char=? #\0 ch) (loop (cons ch chl) '$fixed 11 (read-char)))
-        ((char-numeric? ch) (loop chl '$fixed 20 ch))
-        ((char=? #\. ch) (loop (cons ch chl) ty 12 (read-char)))
-        (else (loop (cons ch chl) ty 73 ch))))
-      ((20) ;; parse decimal integer part
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char-numeric? ch) (loop (cons ch chl) ty 20 (read-char)))
-        ((char=? ch #\.) (loop (cons #\. chl) '$float 30 (read-char)))
-        ((memq ch '(#\E #\e)) (loop (cons ch chl) '$float 40 (read-char)))
-        (else (loop chl '$fixed 70 ch))))
-      ((21) ;; parse fixed hex
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char-hex? ch) (loop (cons ch chl) ty 21 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((22) ;; parse fixed octal              
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char-oct? ch) (loop (cons ch chl) ty 22 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((23) ;; parse fixed binary 
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((memq ch '(#\0 #\1)) (loop (cons ch chl) ty 11 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((30) ;; parse float fractional part
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char-numeric? ch) (loop (cons ch chl) ty 30 (read-char)))
-        ((memq ch '(#\E #\e)) (loop (cons ch chl) ty 40 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((40) ;; have float e|p, look for sign
-       (cond
-        ((eof-object? ch) (loop chl ty 73 ch))
-        ((memq ch '(#\+ #\-)) (loop (cons ch chl) ty 50 (read-char)))
-        (else (loop chl ty 50 ch))))
-      ((50) ;; parse rest of exponent
-       (cond
-        ((eof-object? ch) (loop chl ty 72 ch))
-        ((char-numeric? ch) (loop (cons ch chl) ty 50 (read-char)))
-        (else (loop chl ty 70 ch))))
-      ((70)
-       (cond
-        ((eof-object? ch) (cons ty (rls chl)))
-        (else (loop chl ty 71 ch))))
-      ((71) (unread-char ch) (cons ty (rls chl)))
-      ((72) (cons ty (rls chl)))
-      ((73) (unread-chl chl) #f)
-      (else (error "coding error")))))
-|#
 
 ;; @deffn {Procedure} read-c-num ch => #f|pair
 ;; Reader for numbers in C. Here @evar{pair} is of the form
@@ -756,8 +534,6 @@
 (define (chseq->canon-unmap cst)
   "See chseq"
   (map (lambda (pair) (cons (chseq->symbol (car pair)) (cdr pair))) cst))
-#|
-|#
 
 ;;.@deffn {Procedure} make-tree strtab -> tree
 ;; This routine takes an alist of strings and symbols and makes a tree
@@ -789,107 +565,18 @@
          ((assq-ref node (car cl)) => ;; accept or shift next character
           (lambda (n)
             (if (eq? (caar n) 'else) ; if only else, accept, else read on
-                (cons (cdar n) (lxlsr cl))
+                (cons (cdar n) (rls cl))
                 (loop (cons (read-char) cl) n))))
          ((assq-ref node 'else) => ; else exists, accept
           (lambda (tok)
             (unless (eof-object? (car cl)) (unread-char (car cl)))
-            (cons tok (lxlsr (cdr cl)))))
+            (cons tok (rls (cdr cl)))))
          (else ;; reject
           (let pushback ((cl cl))
             (unless (null? (cdr cl))
               (unless (eof-object? (car cl)) (unread-char (car cl)))
               (pushback (cdr cl))))
           #f))))))
-
-#|
-;; @deffn {Procedure} make-comm-reader comm-table [#:eat-newline #t] => \
-;;   ch bol -> ('$code-comm "..")|('$lone-comm "..") | #f
-;; comm-table is list of cons for (start . end) comment.
-;; e.g. ("--" . "\n") ("/*" . "*/")
-;; test with "/* hello **/"
-;; If @code{eat-newline} is specified as true then for read comments 
-;; ending with a newline a newline swallowed with the comment.
-;; The returned procedure has signature
-;; @code{(proc ch #:optional bol #:skip-prefix #t | #f)}
-;; @* Note: assumes backslash is never part of the end
-;; @end deffn
-(define* (make-comm-reader comm-table #:key eat-newline)
-
-  (define (mc-read-char) ;; CHECK THIS
-    (let ((ch (read-char)))
-      (if (eqv? ch #\\)
-          (let ((ch (read-char)))
-            (if (eqv? ch #\newline)
-                (read-char)
-                (begin (unread-char ch) #\\)))
-          ch)))
-
-  ;; Skip whitespace upto columm @var{col}, and fill in partial tab, if needed.
-  ;; @example
-  ;; (skip-ws-to-col 4 "    def" '(#\newline) => (#\d #\newline)
-  ;; (skip-ws-to-col 6 "\tdef" '(#\newline)) => (#\d #\space #\space #\newline)
-  ;; @end example
-  (define (skip-to-col col il)
-    (let loop ((il il) (cc 0) (ch (read-char)))
-      ;;(simple-format #t " skip-to-col loop il=~S cc=~S ch=~S\n" il cc ch)
-      (cond
-       ((= cc col) (cons ch il))
-       ((> cc col) (loop (cons ch il) (1- cc) #\space)) ; tab over-run
-       ((char=? ch #\space) (loop il (1+ cc) (read-char)))
-       ((char=? ch #\tab) (loop il (* 8 (quotient (+ cc 9) 8)) (read-char)))
-       (else (cons ch il)))))
-         
-  (let ((tree (make-tree comm-table)))
-    (lambda* (ch #:optional bol #:key skip-prefix)
-      (letrec
-          ((scol (1- (port-column (current-input-port)))) ;; 1- since ch read
-           (tval (if bol '$lone-comm '$code-comm))
-           (match-beg ;; match start of comment, return end-string
-            (lambda (cl node)
-              (cond
-               ((eof-object? (car cl)) #f)
-               ((assq-ref node (car cl)) => ;; shift next character
-                (lambda (n) (match-beg (cons (mc-read-char) cl) n)))
-               ((assq-ref node 'else) =>
-                (lambda (res) (unread-char (car cl)) res)) ; yuck?
-               (else
-                (let pushback ((cl cl))
-                  (unless (null? (cdr cl))
-                    (unread-char (car cl))
-                    (pushback (cdr cl))))
-                #f))))
-           (find-end ;; find end of comment, return comment
-            ;; cl: comm char list (cleared from ps);
-            ;; sl: shift list (matched from ps); il: input list;
-            ;; ps: pattern string (e.g., "*/") ; px: pattern index;
-            (lambda (cl sl il ps px)
-              (cond
-               ((eq? px (string-length ps)) ; can Guile optimize this?
-                (if (and (not eat-newline) (eq? #\newline (car sl)))
-                    (unread-char #\newline))
-                (if (and (pair? cl) (eqv? (car cl) #\cr))
-                    (cons tval (lxlsr (cdr cl))) ; remove trailing \r 
-                    (cons tval (lxlsr cl))))
-               ((null? il) (find-end cl sl (cons (mc-read-char) il) ps px))
-               ((eof-object? (car il))
-                (if (char=? (string-ref ps px) #\newline) (cons tval (lxlsr cl))
-                    (throw 'nyacc-error "open comment")))
-               ((eqv? (car il) (string-ref ps px))
-                (find-end cl (cons (car il) sl) (cdr il) ps (1+ px)))
-               ((and (char=? (car il) #\newline) skip-prefix)
-                ;; assumes newline can only be end of ps
-                ;;(simple-format #t "cl=~S sl=~S il=~S\n" cl sl il)
-                (find-end (cons #\newline (append sl cl)) '()
-                          (skip-to-col scol (cdr il)) ps 0))
-               (else
-                (let ((il1 (append-reverse sl il)))
-                  (find-end (cons (car il1) cl) '() (cdr il1) ps 0)))))))
-        (let ((ep (match-beg (list ch) tree))) ;; ep=end pattern (e.g., "*/")
-          (if ep (find-end '() '() (list (mc-read-char)) ep 0) #f))))))
-
-(define read-c-comm (make-comm-reader '(("/*" . "*/") ("//" . "\n"))))
-|#
 
 (define* (make-comm-skipper comm-table #:key eat-newline)
   ;; see make-comm-reader

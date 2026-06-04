@@ -1,0 +1,19 @@
+#!/bin/sh
+# -*- scheme -*-
+
+#GUILE_LOAD_PATH=/home/mwette/proj/nyacc/nyacc-for-mes
+GUILE_LOAD_PATH=`pwd`/..
+export GUILE_LOAD_PATH
+
+exec guile $0 "$@"
+!#
+
+(use-modules (nyacc-cp c99-mach))
+(use-modules (nyacc-cp cpp-mach))
+
+(gen-c99-files)
+(gen-cpp-files)
+(system* '("touch" "c99-parser.scm"))
+(system* '("touch" "c99-cpp.scm"))
+
+;;; --- last line ---

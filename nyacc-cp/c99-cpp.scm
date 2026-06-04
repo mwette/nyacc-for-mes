@@ -262,7 +262,7 @@
          ((skip-c-comm ch) (loop (read-char)))
          ((read-c-num ch) => assc-$)
          ((read-c-string ch) => assc-$)
-         ((read-c-chlit ch) => assc-$)
+         ((read-c-mclit ch) => assc-$)
          ((read-c-ident ch) =>
           (lambda (s) (or (and=> (assq-ref keytab (string->symbol s))
                             (lambda (tval) (cons tval s)))
