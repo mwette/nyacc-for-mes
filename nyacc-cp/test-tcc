@@ -1,80 +1,107 @@
 #!/bin/sh
 # -*- scheme -*-
 
-GUILE_LOAD_PATH=`pwd`/..
+#GUILE_LOAD_PATH=`pwd`/..
+GUILE_LOAD_PATH=/home/mwette/proj/nyacc/nyacc-for-mes
+export GUILE_LOAD_PATH
 
 exec guile $0 "$@"
 !#
-
-(use-modules (ice-9 pretty-print))
 (use-modules (nyacc-cp c99-parser))
+;;(use-modules (nyacc lang c99 parser))
 
 (define tcc-root "/home/mwette/repo/github.com/TinyCC/tinycc")
 
-(define (try-file name)
-  (let* ((file (string-append tcc-root "/" name)))
-   (with-input-from-file file
-        (lambda ()
-             (parse-c99 
-              #:cpp-defs '()
-              #:inc-dirs (list (string-append tcc-root "include") tcc-root))
-              #:debug #f ))))))
+(use-modules (ice-9 pretty-print))
+(define (pp exp)
+  (pretty-print exp #:per-line-prefix "  "))
+(define (sf fmt . args)
+  (apply simple-format #t fmt args))
+
+(define cpp-defs
+  (list
+   "__SIZE_TYPE__=long unsigned int"
+   "__builtin_va_list=void*"
+   "__attribute(X)=__attribute__(X)"
+   ;;"__signed__signed"
+   ))
+
+(define inc-dirs
+  (list
+   (string-append tcc-root "include")
+   tcc-root
+   "/usr/include/x86_64-linux-musl"
+   ))
+
 
 (define tcc-cfiles
- '((
-    "tcccoff.c"
+  '(
+    #|
+    |#
+    ;;"tcccoff.c"
     "tccgen.c"
-    "arm64-link.c"
-    "x86_64-link.c"
-    "i386-asm.c"
-    "c67-link.c"
+    ;;"arm64-link.c"
+    ;;"x86_64-link.c"
+    ;;"i386-asm.c"
+    ;;"c67-link.c"
     "tccpe.c"
     "libtcc.c"
-    "riscv64-gen.c"
+    ;;"riscv64-gen.c"
     "tccasm.c"
     "tccelf.c"
-    "riscv64-link.c"
-    "arm64-gen.c"
+    ;;"riscv64-link.c"
+    ;;"arm64-gen.c"
     "conftest.c"
-    "il-gen.c"
-    "arm-asm.c"
-    "arm-link.c"
-    "c67-gen.c"
-    "arm64-asm.c"
+    ;;"il-gen.c"
+    ;;"arm-asm.c"
+    ;;"arm-link.c"
+    ;;"c67-gen.c"
+    ;;"arm64-asm.c"
     "tccmacho.c"
-    "i386-link.c"
+    ;;"i386-link.c"
     "tcctools.c"
     "tccpp.c"
-    "x86_64-gen.c"
-    "i386-gen.c"
-    "lib/stdatomic.c"
-    "lib/armeabi.c"
+    ;;"x86_64-gen.c"
+    ;;"i386-gen.c"
+    ;;"lib/stdatomic.c"  ; needs (C++) stdatomic.h
+    ;;"lib/armeabi.c"
     "lib/tcov.c"
     "lib/libtcc1.c"
-    "lib/bcheck.c"
+    ;;"lib/bcheck.c" ; needs (C++) stdatomic.h
     "lib/bt-log.c"
     "lib/builtin.c"
     "lib/dsohandle.c"
     "lib/va_list.c"
-    "lib/lib-arm64.c"
-    "lib/armflush.c"
-    "lib/bt-dll.c"
+    ;;"lib/lib-arm64.c"
+    ;;"lib/armflush.c"
+    ;;"lib/bt-dll.c"
     "lib/runmain.c"
-    "lib/riscvflush.c"
-    "lib/bt-exe.c"
+    ;;"lib/riscvflush.c"
+    ;;"lib/bt-exe.c"
     "tcc.c"
-    "riscv64-asm.c"
+    ;;"riscv64-asm.c"
     "tccrun.c"
     "tccdbg.c"
-    "arm-gen.c"
-    )))
+    ;;"arm-gen.c"
+    #|
+    |#
+    ))
+
+(define (try-file name)
+  (let* ((file (string-append tcc-root "/" name)))
+    (with-input-from-file file
+      (lambda ()
+        (parse-c99 
+         #:cpp-defs cpp-defs
+         #:inc-dirs inc-dirs
+        #:debug #f)))))
 
 (define (main args)
-  (let* ((file (car args))
-         (tree (with-input-from-file file
-                 (lambda () (parse-c99 #:debug #f))))
-         )
-    (pretty-print tree)))
+  (for-each
+   (lambda (file)
+     (display file) (display ":\t") (force-output)
+     (display (if (try-file file) "PASS" "FAIL")) (newline))
+   tcc-cfiles))
 
 (main (cdr (program-arguments)))
 

@@ -1,7 +1,9 @@
 #!/bin/sh
 # -*- scheme -*-
 
-GUILE_LOAD_PATH=`pwd`/..
+#GUILE_LOAD_PATH=`pwd`/..
+GUILE_LOAD_PATH=/home/mwette/proj/nyacc/nyacc-for-mes
+export GUILE_LOAD_PATH
 
 exec guile $0 "$@"
 !#
@@ -9,11 +11,30 @@ exec guile $0 "$@"
 (use-modules (ice-9 pretty-print))
 (use-modules (nyacc-cp c99-parser))
 
+(define tcc-root "/home/mwette/repo/github.com/TinyCC/tinycc")
+
+(define cpp-defs
+  (list
+   "__SIZE_TYPE__=long unsigned int"
+   "__builtin_va_list=void*"
+   "__attribute(X)=__attribute__(X)"
+   ))
+
+(define inc-dirs
+  (list
+   (string-append tcc-root "include")
+   tcc-root
+   "/usr/include/x86_64-linux-musl"
+   ))
+
+
 (define (main args)
   (let* ((file (car args))
          (tree (with-input-from-file file
-                 (lambda () (parse-c99 #:debug #f))))
-         )
+                 (lambda ()
+                   (parse-c99 #:debug #f 
+                              #:cpp-defs cpp-defs 
+                              #:inc-dirs inc-dirs)))))
     (pretty-print tree)))
 
 (main (cdr (program-arguments)))
