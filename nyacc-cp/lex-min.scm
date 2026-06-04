@@ -33,7 +33,7 @@
             eval-reader
             read-basic-num
             read-c-ident read-c$-ident
-            read-c-comm
+            ;;read-c-comm
             read-c-string
             read-c-chlit read-c-mclit
             read-c-num

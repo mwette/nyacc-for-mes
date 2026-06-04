@@ -516,9 +516,6 @@
 
 ;; ===================================
 
-;; Routines to process specifier-lists and declarators, indended
-;; to provide option to convert attribute-specifiers elements into
-;; SXML attributes.  See move-attributes in util.scm.
 (define (process-specs exp) (move-attributes exp))
 (define (process-declr exp) (move-attributes exp))
 

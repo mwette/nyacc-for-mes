@@ -55,7 +55,7 @@ This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
 version 3 of the License, or (at your option) any later version.
-See the file COPYING included with the this distribution.")
+See the file LICENSE included with the this distribution.")
 
    (prec< 'then "else")	       ; "then/else" SR-conflict resolution
    (prec< (left 'imp)	       ; "implied type" SR-conflict resolution
@@ -399,8 +399,6 @@ See the file COPYING included with the this distribution.")
      (struct-declaration-list-1 struct-declaration ($$ (tl-append $1 $2)))
      (lone-comment ($$ (make-tl 'field-list $1)))
      (struct-declaration-list-1 lone-comment ($$ (tl-append $1 $2)))
-     ;;(cpp-statement ($$ (make-tl 'field-list $1)))
-     ;;(struct-declaration-list cpp-statement ($$ (tl-append $1 $2)))
      ;; Not in C99, but allowed by GNU, I believe:
      (";" ($$ (make-tl 'field-list)))
      (struct-declaration-list-1 ";" ($$ $1)))
