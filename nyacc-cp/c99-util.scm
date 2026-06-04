@@ -56,6 +56,7 @@
 ;; (attributes "__packed__;...")
 ;; OR
 ;; () => ()
+(display "c99-util.scm: check attrl->attrs use of match vs sx-match\n")
 (define (attrl->attrs attr-list)
   (define (spec->str spec)
     (match spec

@@ -29,7 +29,7 @@
 
 (define-module (nyacc-cp sx-util)
   #:export (
-            sx-ref sx-tail sx-cons* sx-find
+            sx-ref sx-tag sx-attr sx-tail sx-cons* sx-find sx-attr-add sx-list
             ;;make-sx
             ;;sx-tag sx-attr sx-tail sx-length sx-ref sx-ref*
             ;;sx-has-attr? sx-attr-ref sx-attr-add sx-attr-add* sx-attr-set!
@@ -46,6 +46,18 @@
 ;; @end deffn
 (define (sx-tag sx)
   (if (pair? sx) (car sx) #f))
+
+;; @deffn {Procedure} sx-attr sx => ((k v) ...)
+;; @example
+;; (sx-attr '(abc (@ (foo "1")) def) 1) => ((foo "1"))
+;; @end example
+;; @end deffn
+(define (sx-attr sx)
+  (if (and (pair? (cdr sx))
+           (pair? (cadr sx))
+           (eqv? '@ (caadr sx)))
+      (cdadr sx)
+      '()))
 
 ;; @deffn {Procedure} sx-ref sx ix => item
 ;; Reference the @code{ix}-th element of the list, not counting the optional
@@ -148,6 +160,29 @@
    (else
     (error "sx-find: expecting first arg to be tag or sxpath"))))
 
+;; @deffn {Procedure} sx-has-attr? sx
+;; p to determine if @arg{sx} has attributes.
+;; @end deffn
+(define (sx-has-attr? sx)
+  (and (pair? (cdr sx)) (pair? (cadr sx)) (eqv? '@ (caadr sx)) #t))
+
+;; @deffn {Procedure} sx-attr-add sx key-or-pair [val]
+;; Add attribute to sx, passing either a key-val pair or key and val.
+;; @end deffn
+(define* (sx-attr-add sx key-or-pair #:optional val)
+  (let* ((pair (if val (list key-or-pair val) key-or-pair))
+         (key (car pair)) (val (cadr pair)))
+    (cons
+     (sx-tag sx)
+     (if (sx-has-attr? sx)
+         (cons `(@ pair
+                   ,@(let loop ((atl (sx-attr sx)))
+                       (cond ((null? atl) '())
+                             ((eq? key (caar atl)) (loop (cdr atl)))
+                             (else (cons (car atl) (loop (cdr atl)))))))
+               (cddr sx))
+         (cons `(@ ,pair) (cdr sx))))))
+
 #|
 ;; === sx ==============================
 ;; @section SXML Utility Procedures
@@ -214,18 +249,6 @@
 (define (sx-has-attr? sx)
   (and (pair? (cdr sx)) (pair? (cadr sx)) (eqv? '@ (caadr sx)) #t))
 
-;; @deffn {Procedure} sx-attr sx => ((k v) ...)
-;; @example
-;; (sx-attr '(abc (@ (foo "1")) def) 1) => ((foo "1"))
-;; @end example
-;; @end deffn
-(define (sx-attr sx)
-  (if (and (pair? (cdr sx))
-           (pair? (cadr sx))
-           (eqv? '@ (caadr sx)))
-      (cdadr sx)
-      '()))
-
 ;; @deffn {Procedure} sx-attr-ref sx|node|tail| #f key => val
 ;; Return an attribute value given the key, or @code{#f}.
 ;; Also works if passed the attribute node @code{(@ ...)}, or its tail,
@@ -247,23 +270,6 @@
    ((null? attr) #f)
    ((eq? '@ (car attr)) (if (null? (cdr attr)) #f attr))
    (else (cons '@ attr))))
-
-;; @deffn {Procedure} sx-attr-add sx key-or-pair [val]
-;; Add attribute to sx, passing either a key-val pair or key and val.
-;; @end deffn
-(define* (sx-attr-add sx key-or-pair #:optional val)
-  (let* ((pair (if val (list key-or-pair val) key-or-pair))
-         (key (car pair)) (val (cadr pair)))
-    (cons
-     (sx-tag sx)
-     (if (sx-has-attr? sx)
-         (cons `(@ pair
-                   ,@(let loop ((atl (sx-attr sx)))
-                       (cond ((null? atl) '())
-                             ((eq? key (caar atl)) (loop (cdr atl)))
-                             (else (cons (car atl) (loop (cdr atl)))))))
-               (cddr sx))
-         (cons `(@ ,pair) (cdr sx))))))
 
 ;; @deffn {Procedure} sx-attr-add* sx key val [key val [@dots{} ]] => sx
 ;; Add key-val pairs. @var{key} must be a symbol and @var{val} must be
