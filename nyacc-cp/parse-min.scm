@@ -98,7 +98,7 @@
         (cond
          ((not (or nval lval))
           (if (eqv? $default (caar (vector-ref pat-v (car state))))
-              (loop state stack (cons-source stack $default #f) lval)
+              (loop state stack (cons $default #f) lval)
               (loop state stack nval (lexr)))) ; reload
          (else
           (let* ((laval (or nval lval))
@@ -123,7 +123,7 @@
                      (tval (cons (vector-ref rto-v gx) $$)))
                 (loop (list-tail state gl) (list-tail stack gl) tval lval)))
              ((positive? stx)           ; shift
-              (loop (cons stx state) (cons-source laval sval stack) 
+              (loop (cons stx state) (cons sval stack) 
                     #f (if nval lval #f)))
              (else                      ; accept
               (car stack))))))))))

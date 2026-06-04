@@ -87,17 +87,6 @@
   ;; Any entry for an include file which contains `=' is considered
   ;; a define; otherwise, the entry is a typename.
 
-  #|
-  (define (split-helper helper)
-    (let ((file (car helper)))
-      (let loop ((tyns '()) (defs '()) (ents (cdr helper)))
-        (cond
-         ((null? ents) (values (cons file tyns) (cons file defs)))
-         ((string-contains (car ents) "=")
-          (loop tyns (cons (split-cppdef (car ents)) defs) (cdr ents)))
-         (else (loop (cons (car ents) tyns) defs (cdr ents)))))))
-  |#
-
   (define (split-if-needed def tail)
     (cons (if (pair? def) def (split-cppdef def)) tail))
 
@@ -109,23 +98,6 @@
     (set-cpi-ptl! cpi '())              ; list of lists of typenames
     (set-cpi-ctl! cpi '())              ; list of current typenames
     (set-cpi-blev! cpi 0)               ; brace/block level
-    #|
-    ;; Break up the helpers into typenames and defines.
-    (let loop ((itynd '()) (idefd '()) (helpers inchelp))
-      (cond ((null? helpers)
-             (set-cpi-itynd! cpi itynd)
-             (set-cpi-idefd! cpi idefd))
-            (else
-             (call-with-values
-                 (lambda () (split-helper (car helpers)))
-               (lambda (ityns idefs)
-                 (loop (cons ityns itynd) (cons idefs idefd) (cdr helpers)))))))
-    ;; Assign builtins.
-    (and=> (assoc-ref (cpi-itynd cpi) "__builtin")
-           (lambda (tl) (set-cpi-ctl! cpi (append (cpi-ctl cpi) tl))))
-    (and=> (assoc-ref (cpi-idefd cpi) "__builtin")
-      (lambda (dl) (set-cpi-defs! cpi (append (cpi-defs cpi) dl))))
-    |#
     cpi))
 
 (define *info* (make-parameter #f))
@@ -327,17 +299,6 @@
           (define (rem-define name)
             (set-cpi-defs! info (acons name #f (cpi-defs info))))
 
-          #|
-          (define (apply-helper file)
-            ;; file will include <> or "", need to strip
-            (let* ((tyns (assoc-ref (cpi-itynd info) file))
-                   (defs (assoc-ref (cpi-idefd info) file)))
-              (when tyns
-                (for-each add-typename tyns)
-                (set-cpi-defs! info (append defs (cpi-defs info))))
-              tyns))
-          |#
-          
           (define (inc-stmt->file-spec stmt) ;; retain <> or ""
             (let* ((arg (cadr stmt)))
               (if (ident-like? arg) ;; #include MYFILE
@@ -431,48 +392,42 @@
           (define (read-cpp-stmt ch)
             (and=> (read-cpp-line ch) cpp-line->stmt))
 
-          (define (make-loc-info) '())
-          (define (w/ ss res) res)
-          (define (cons-source a head tail) (cons head tail))
-
           (define (read-token)
-            (let loop ((ch (read-char)) (ss #f)) ;; ss is source loc
+            (let loop ((ch (read-char)))
               (cond
-               ((not ss) (loop ch (make-loc-info)))
                ((eof-object? ch)
                 (if (pop-input)
-                    (loop (read-char) ss)
+                    (loop (read-char))
                     (if (pair? (cdr ppxs))
                         (c99-err "unterminated #if")
-                        (w/ ss (cons '$end "#<eof>")))))
-               ((eq? ch #\newline) (set! bol #t) (loop (read-char) #f))
-               ((char-set-contains? c:ws ch) (loop (read-char) #f))
+                        (cons '$end "#<eof>"))))
+               ((eq? ch #\newline) (set! bol #t) (loop (read-char)))
+               ((char-set-contains? c:ws ch) (loop (read-char)))
                (bol
                 (set! bol #f)
                 (cond ;; things that require bol
                  ((read-cpp-stmt ch) =>
-                  (lambda (stmt) (eval-cpp-stmt stmt) (loop (read-char) ss)))
-                 (else (loop ch ss))))
+                  (lambda (stmt) (eval-cpp-stmt stmt) (loop (read-char))))
+                 (else (loop ch))))
                ((skip-comm ch)
-                (loop (read-char) ss))
+                (loop (read-char)))
                ((not (eq? (car ppxs) 'keep))
-                (loop (read-char) ss))
-               ((read-c-chlit ch) =>
-                (lambda (p) (w/ ss p)))
+                (loop (read-char)))
+               ((read-c-chlit ch) => identity)
                ((read-c-ident ch) =>
                 (lambda (name) (cons '$ident name)))
-               ((read-c-num ch) => (lambda (p) (w/ ss p)))
-               ((read-c-string ch) => (lambda (p) (w/ ss p)))
+               ((read-c-num ch) => identity)
+               ((read-c-string ch) => identity)
                ((and (char=? ch #\{) (eqv? 'keep (car ppxs))
                      (cpi-inc-blev! info) #f) #f) ; incr brace level
                ((and (char=? ch #\}) (eqv? 'keep (car ppxs))
                      (cpi-dec-blev! info) #f) #f) ; decr brace level
-               ((read-chseq ch) => (lambda (p) (w/ ss p)))
+               ((read-chseq ch) => identity)
                ((eqv? ch #\\) ;; C allows \ at end of line to continue
                 (if (eqv? (read-char) #\newline)
-                    (loop (read-char) ss)
+                    (loop (read-char))
                     (throw 'c99-error "bad use of \\")))
-               (else (w/ ss (cons ch (string ch)))))))
+               (else (cons ch (string ch))))))
 
           ;; Loop between reading tokens and skipping tokens via CPP logic.
           ;; ptl: processed token list, rtl: raw token list
@@ -482,11 +437,11 @@
                ((eq? '$ident key)
                 (let ((symb (string->symbol val)))
                   (cond
-                   ((typename? val) (cons-source tok t-typename val))
+                   ((typename? val) (cons t-typename val))
                    ((assq-ref keytab symb)
-                    => (lambda (v) (cons-source tok v val)))
-                   (else (cons-source tok t-ident val)))))
-               ((symbol? key) (cons-source tok (assq-ref symtab key) val))
+                    => (lambda (v) (cons v val)))
+                   (else (cons t-ident val)))))
+               ((symbol? key) (cons (assq-ref symtab key) val))
                (else (error "parser.scm: coding error")))))
 
             (if (pair? tkl)
