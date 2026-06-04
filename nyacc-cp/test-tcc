@@ -23,7 +23,6 @@ exec guile $0 "$@"
    "__SIZE_TYPE__=long unsigned int"
    "__builtin_va_list=void*"
    "__attribute(X)=__attribute__(X)"
-   ;;"__signed__signed"
    ))
 
 (define inc-dirs
