@@ -1,0 +1,73 @@
+killer seems to be using alist for #defines
+
+ccrun.c:	PASS
+tccdbg.c:	PASS
+%     cumulative   self             
+time   seconds     seconds  procedure
+ 73.67     19.03     19.02  nyacc-cp/c99-cpp.scm:647:0:lookup-def
+  3.91      1.04      1.01  nyacc-cp/c99-parser.scm:142:0:typename?
+  3.18      0.82      0.82  read-char
+  2.05      0.53      0.53  assq-ref
+  1.73     26.19      0.45  nyacc-cp/parse-min.scm:81:4
+  1.36      0.61      0.35  nyacc-cp/c99-cpp.scm:290:8:eval-expr
+  1.14     23.93      0.29  nyacc-cp/c99-parser.scm:277:8
+  0.68      0.18      0.18  reverse-list->string
+  0.59      0.42      0.15  nyacc-cp/lex-min.scm:587:4
+  0.50      0.13      0.13  char-set-contains?
+  0.36      3.45      0.09  nyacc-cp/c99-parser.scm:384:10:read-token
+  0.36      0.09      0.09  string=?
+  0.36      0.09      0.09  nyacc-cp/c99-parser.scm:465:4
+  0.32      0.08      0.08  ice-9/boot-9.scm:1370:3
+  0.32      0.08      0.08  unread-char
+  0.32      0.08      0.08  open-input-string
+  0.27      0.22      0.07  nyacc-cp/c99-parser.scm:204:0:read-cpp-line
+  0.27      0.22      0.07  nyacc-cp/c99-cpp.scm:245:4
+  0.23      0.38      0.06  nyacc-cp/lex-min.scm:92:2
+  0.23      0.18      0.06  nyacc-cp/lex-min.scm:565:4
+  0.23      0.13      0.06  nyacc-cp/lex-min.scm:266:0:read-c-num
+  0.23      0.06      0.06  nyacc-cp/c99-act.scm:41:3
+  0.23      0.06      0.06  ice-9/boot-9.scm:797:0:identity
+  0.18     18.97      0.05  nyacc-cp/c99-cpp.scm:688:0:expand-cpp-macro-ref
+  0.18      2.44      0.05  nyacc-cp/c99-cpp.scm:406:0:cpp-subst
+  0.18      0.22      0.05  nyacc-cp/c99-cpp.scm:202:4
+  0.18      0.05      0.05  nyacc-cp/c99-act.scm:22:3
+  0.18      0.05      0.05  nyacc-cp/c99-act.scm:67:3
+  0.18      0.05      0.05  char-numeric?
+  0.18      0.05      0.05  nyacc-cp/c99-act.scm:79:3
+  0.18      0.05      0.05  nyacc-cp/c99-act.scm:61:3
+  0.18      0.05      0.05  list-tail
+  0.18      0.05      0.05  nyacc-cp/c99-act.scm:87:3
+  0.18      0.05      0.05  %after-gc-thunk
+  0.14     11.05      0.04  nyacc-cp/c99-cpp.scm:350:0:cpp-expand
+  0.14      0.07      0.04  nyacc-cp/lex-min.scm:237:0:read-c-mclit
+  0.14      0.05      0.04  nyacc-cp/c99-act.scm:24:3
+  0.14      0.04      0.04  nyacc-cp/common-utils.scm:12:2:assq-ref@guile
+  0.14      0.04      0.04  nyacc-cp/parse-min.scm:93:23:list-tail@guile
+  0.14      0.04      0.04  open-file
+  0.14      0.04      0.04  nyacc-cp/c99-cpp.scm:458:0:collect-args
+  0.14      0.04      0.04  nyacc-cp/c99-act.scm:75:3
+  0.14      0.04      0.04  nyacc-cp/c99-act.scm:72:3
+  0.14      0.04      0.04  nyacc-cp/c99-act.scm:57:3
+  0.14      0.04      0.04  memq
+  0.14      0.04      0.04  port-column
+  0.14      0.04      0.04  nyacc-cp/c99-act.scm:503:3
+  0.09     55.26      0.02  ice-9/boot-9.scm:1720:4:with-exception-handler
+  0.09      1.69      0.02  nyacc-cp/c99-parser.scm:356:14
+  0.09      0.40      0.02  nyacc-cp/c99-cpp.scm:554:0:reverse-tokenize-to-mark
+  0.09      0.20      0.02  nyacc-cp/c99-cpp.scm:588:0:tokenize-args
+  0.09      0.07      0.02  nyacc-cp/c99-cpp.scm:77:0:read-rest
+  0.09      0.04      0.02  nyacc-cp/c99-act.scm:421:3
+  0.09      0.04      0.02  ice-9/boot-9.scm:1324:5
+  0.09      0.02      0.02  nyacc-cp/c99-act.scm:504:3
+  0.09      0.02      0.02  nyacc-cp/c99-cpp.scm:49:32:string=?@guile
+  0.09      0.02      0.02  nyacc-cp/c99-act.scm:15:3
+  0.09      0.02      0.02  string-append
+  0.09      0.02      0.02  ice-9/boot-9.scm:821:0:and=>
+  0.09      0.02      0.02  nyacc-cp/c99-act.scm:73:3
+  0.05      1.75      0.01  ice-9/ports.scm:541:0:with-input-from-string
+  0.05      0.35      0.01  nyacc-cp/c99-cpp.scm:508:0:read-cpp-token
+  0.05      0.12      0.01  nyacc-cp/c99-cpp.scm:52:0:c99-std-val
+  0.05      0.02      0.01  nyacc-cp/parser-utils.scm:203:0:tl->list
+  0.05      0.02      0.01  nyacc-cp/c99-act.scm:14:3
+  0.05      0.01      0.01  nyacc-cp/c99-act.scm:66:3
+

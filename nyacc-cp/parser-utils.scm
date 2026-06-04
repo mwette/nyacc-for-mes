@@ -5,8 +5,7 @@
   #:export (report-error
             *input-stack* push-input pop-input
             reset-input-stack
-            make-tl tl->list
-            tl-append tl-insert tl-extend
+            make-tl tl->list tl-append tl-insert tl-extend
             sx-ref sx-tag sx-attr sx-tail sx-cons* sx-find sx-attr-add sx-list
             move-attributes attrl->attrs attrs->attrl extract-attr
             vector-map)

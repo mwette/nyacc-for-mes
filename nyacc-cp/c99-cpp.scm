@@ -30,10 +30,7 @@
             eval-cpp-cond-text          ; #if etc
             find-incl-in-dirl           ; #include
             tokenize-cpp-string         ; #define
-            macro-expand-text
-            ;;parse-cpp-expr
-            ;;eval-cpp-expr
-            )
+            macro-expand-text)
   #:use-module (nyacc-cp parse-min)
   #:use-module (nyacc-cp lex-min)
   #:use-module (nyacc-cp common-utils)
