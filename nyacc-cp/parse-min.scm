@@ -120,11 +120,7 @@
               (let* ((gx (abs stx))
                      (gl (vector-ref len-v gx))
                      ($$ (apply (vector-ref xct-v gx) stack))
-                     (pobj (if (zero? gl) laval (list-tail stack (1- gl))))
-                     (pval (source-properties pobj))
-                     (tval (cons-source pobj (vector-ref rto-v gx) $$)))
-                (if (supports-source-properties? $$)
-                    (set-source-properties! $$ pval))
+                     (tval (cons (vector-ref rto-v gx) $$)))
                 (loop (list-tail state gl) (list-tail stack gl) tval lval)))
              ((positive? stx)           ; shift
               (loop (cons stx state) (cons-source laval sval stack) 

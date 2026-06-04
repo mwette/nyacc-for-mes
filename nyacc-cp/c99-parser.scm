@@ -395,7 +395,6 @@
                    (path (inc-file-spec->path spec next)))
               (if show-incs (sf "include ~A => ~S\n" spec path))
               (cond
-               ;;((apply-helper file) stmt)
                ((not path) (c99-err "not found: ~S" file))
                (else (set! bol #t)
                      (push-input (open-input-file path))
@@ -432,12 +431,9 @@
           (define (read-cpp-stmt ch)
             (and=> (read-cpp-line ch) cpp-line->stmt))
 
-          (define (make-loc-info)
-            (let ((fn (or (port-filename (current-input-port)) "(unknown)"))
-                  (ln (1+ (port-line (current-input-port)))))
-              `((line . ,ln) (filename . ,fn))))
-
-          (define (w/ ss res) (set-source-properties! res ss) res)
+          (define (make-loc-info) '())
+          (define (w/ ss res) res)
+          (define (cons-source a head tail) (cons head tail))
 
           (define (read-token)
             (let loop ((ch (read-char)) (ss #f)) ;; ss is source loc
