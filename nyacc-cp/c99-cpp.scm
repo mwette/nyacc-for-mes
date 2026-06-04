@@ -173,7 +173,7 @@
         (let loop ((args '()) (la (skip-il-ws (read-char))))
           (cond
            ((eq? la #\)) (reverse args))
-           ((read-c-comm la) (loop args (skip-il-ws (read-char))))
+           ((skip-c-comm la) (loop args (skip-il-ws (read-char))))
            ((read-c-ident la) =>
             (lambda (arg) (loop (cons arg args) (skip-il-ws (read-char)))))
            ((read-ellipsis la) =>
@@ -188,7 +188,7 @@
                  (cond
                   ((eof-object? ch) (throw 'cpp-error "bad #define"))
                   ((read-c-ident ch))
-                  ((cpp-comm-skipper ch) (loop (skip-il-ws (read-char))))
+                  ((skip-c-comm ch) (loop (skip-il-ws (read-char))))
                   (else (throw 'cpp-error "bad #define")))))
          (args (p-args (read-char)))
          (repl (p-rest (skip-il-ws (read-char)))))
@@ -240,34 +240,34 @@
 (define (cpp-err fmt . args)
   (apply throw 'cpp-error fmt args))
 
-(define cpp-comm-skipper (make-comm-skipper '(("/*" . "*/"))))
+(define skip-c-comm (make-comm-skipper '(("/*" . "*/"))))
 
 ;; generate a lexical analyzer per string
-(define gen-cpp-lexer
+(define cpp-lexer
   (let* ((match-table cpp-mtab)
          (ident-like? (make-ident-like-p read-c-ident))
          (strtab (filter-mt string? match-table)) ; strings in grammar
          (kwstab (filter-mt ident-like? strtab))  ; keyword strings =>
          (keytab (map-mt string->symbol kwstab))  ; keywords in grammar
          (chrseq (remove-mt ident-like? strtab))  ; character sequences
-         (cs-rmap (chseq->canon-map chrseq))     ; remap
-         (skip-comm cpp-comm-skipper)
-         (read-chseq (make-chseq-reader cs-rmap)))
+         (symtab (filter-mt symbol? match-table)) ; symbols in grammar
+         ;;
+         (read-chseq (make-chseq-reader chrseq))
+         (assc-$ (lambda (p) (cons (assq-ref symtab (car p)) (cdr p)))))
     (lambda ()
-      (let ((bol #t))
-        (lambda ()
-          (let loop ((ch (read-char)))
-            (cond
-             ((eof-object? ch) (cons '$end "#<eof>"))
-             ((char-set-contains? c:ws ch) (loop (read-char)))
-             ((and (eqv? ch #\newline) (set! bol #t) #f))
-             ((skip-comm ch #f) (loop (read-char)))
-             ((read-c-num ch))
-             ((read-c-string ch))
-             ((read-c-chlit ch))
-             ((read-c-ident ch) => (lambda (name) (cons '$ident name)))
-             ((read-chseq ch) => identity)
-             (else (cons ch ch))))))))) ; should be error
+      (pk
+      (let loop ((ch (read-char)))
+        (cond
+         ((eof-object? ch) (assc-$ (cons '$end "#<eof>")))
+         ((char-set-contains? c:ws ch) (loop (read-char)))
+         ((skip-c-comm ch) (loop (read-char)))
+         ((read-c-num ch) => assc-$)
+         ((read-c-string ch) => assc-$)
+         ((read-c-chlit ch) => assc-$)
+         ((read-c-ident ch) => (lambda (name) (cons '$ident name)))
+         ((read-chseq ch) => identity)
+         (else (cons ch ch))))))) ; should be error
+  )
 
 ;; @deffn {Procedure} parse-cpp-expr text => tree
 ;; Given a string returns a cpp parse tree.  This is called by
@@ -280,7 +280,7 @@
       'nyacc-error
     (lambda ()
       (with-input-from-string text
-        (lambda () (cpp-raw-parser (gen-cpp-lexer)))))
+        (lambda () (cpp-raw-parser cpp-lexer #:debug #t))))
     (lambda (key fmt . args)
       (apply throw 'cpp-error fmt args))))
 
@@ -522,7 +522,7 @@
      ((eof-object? ch) (if ws (cons #\space " ") (cons '$end "#<eof>")))
      ((char-set-contains? c:ws ch) (loop (read-char) #t))
      ((eq? ch #\newline) (loop (read-char) #t))
-     ((read-c-comm ch #f) (loop (read-char) #t))
+     ((skip-c-comm ch) (loop (read-char) #t))
      (ws (unread-char ch) (cons #\space " "))
      ((read-c-mclit ch) => identity)
      ((read-c-ident ch) => (lambda (name) (cons '$ident name)))

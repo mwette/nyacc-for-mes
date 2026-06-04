@@ -1,0 +1,81 @@
+#!/bin/sh
+# -*- scheme -*-
+
+GUILE_LOAD_PATH=`pwd`/..
+
+exec guile $0 "$@"
+!#
+
+(use-modules (ice-9 pretty-print))
+(use-modules (nyacc-cp c99-parser))
+
+(define tcc-root "/home/mwette/repo/github.com/TinyCC/tinycc")
+
+(define (try-file name)
+  (let* ((file (string-append tcc-root "/" name)))
+   (with-input-from-file file
+        (lambda ()
+             (parse-c99 
+              #:cpp-defs '()
+              #:inc-dirs (list (string-append tcc-root "include") tcc-root))
+              #:debug #f ))))))
+
+(define tcc-cfiles
+ '((
+    "tcccoff.c"
+    "tccgen.c"
+    "arm64-link.c"
+    "x86_64-link.c"
+    "i386-asm.c"
+    "c67-link.c"
+    "tccpe.c"
+    "libtcc.c"
+    "riscv64-gen.c"
+    "tccasm.c"
+    "tccelf.c"
+    "riscv64-link.c"
+    "arm64-gen.c"
+    "conftest.c"
+    "il-gen.c"
+    "arm-asm.c"
+    "arm-link.c"
+    "c67-gen.c"
+    "arm64-asm.c"
+    "tccmacho.c"
+    "i386-link.c"
+    "tcctools.c"
+    "tccpp.c"
+    "x86_64-gen.c"
+    "i386-gen.c"
+    "lib/stdatomic.c"
+    "lib/armeabi.c"
+    "lib/tcov.c"
+    "lib/libtcc1.c"
+    "lib/bcheck.c"
+    "lib/bt-log.c"
+    "lib/builtin.c"
+    "lib/dsohandle.c"
+    "lib/va_list.c"
+    "lib/lib-arm64.c"
+    "lib/armflush.c"
+    "lib/bt-dll.c"
+    "lib/runmain.c"
+    "lib/riscvflush.c"
+    "lib/bt-exe.c"
+    "tcc.c"
+    "riscv64-asm.c"
+    "tccrun.c"
+    "tccdbg.c"
+    "arm-gen.c"
+    )))
+
+(define (main args)
+  (let* ((file (car args))
+         (tree (with-input-from-file file
+                 (lambda () (parse-c99 #:debug #f))))
+         )
+    (pretty-print tree)))
+
+(main (cdr (program-arguments)))
+
+;; --- last line ---
