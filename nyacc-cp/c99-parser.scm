@@ -18,23 +18,12 @@
 ;;; Code:
 
 (define-module (nyacc-cp c99-parser)
-  #:export (parse-c99 parse-c99x gen-c99-lexer gen-c99x-lexer gen-c-lexer)
-  #:use-module ((srfi srfi-1) #:select (fold fold-right))
-  #:use-module ((srfi srfi-9) #:select (define-record-type))
+  #:export (parse-c99)
   #:use-module (nyacc-cp lex-min)
   #:use-module (nyacc-cp parse-min)
   #:use-module (nyacc-cp c99-cpp)
-  #:use-module (nyacc-cp c99-util)
-  #:use-module (nyacc-cp sx-util)
-  #:use-module (nyacc-cp tl-util)
-  )
-
-;; === body ==========================
-
-
-(use-modules (ice-9 pretty-print))      ; for debugging
-(define (sf fmt . args) (apply simple-format #t fmt args))
-(define pp pretty-print)
+  #:use-module (nyacc-cp common-utils)
+  #:use-module (nyacc-cp parser-utils))
 
 ;; C parser info
 (define-record-type cpi
@@ -180,7 +169,7 @@
       ((ftn-declr) (declr->id-name (sx-ref declr 1)))
       ((scope) (declr->id-name (sx-ref declr 1)))
       (else
-       (pp (car declr))
+       (pperr (car declr))
        (throw 'c99-error "parser.scm: find-new-typenames: ~S" declr))))
 
   (let* ((spec (sx-ref decl 1))
@@ -354,7 +343,7 @@
             (let* ((spec (inc-stmt->file-spec stmt))
                    (file (file-spec->file spec))
                    (path (inc-file-spec->path spec next)))
-              (if show-incs (sf "include ~A => ~S\n" spec path))
+              (if show-incs (sferr "include ~A => ~S\n" spec path))
               (cond
                ((not path) (c99-err "not found: ~S" file))
                (else (set! bol #t)

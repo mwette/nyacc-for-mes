@@ -23,24 +23,12 @@
 ;;; Code:
 
 (define-module (nyacc-cp parse-min)
-  #:export (make-lalr-parser/num))
+  #:export (make-lalr-parser/num)
+  #:use-module (nyacc-cp common-utils)
+  #:use-module (nyacc-cp parser-utils))
 
 (define $default 1)                     ; sync w/ lalr-min.scm
 (define $error 2)                       ; sync w/ lalr-min.scm
-
-(use-modules (ice-9 pretty-print))
-(define (pperr exp)
-  (pretty-print exp (current-error-port) #:per-line-prefix "  "))
-(define (sferr fmt . args)
-  (apply simple-format (current-error-port) fmt args))
-
-(define (vector-map proc vec)           ; see (srfi srfi-43)
-  (let* ((ln (vector-length vec)) (res (make-vector ln)))
-    (let loop ((ix 0))
-      (unless (= ix ln)
-        (vector-set! res ix (proc ix (vector-ref vec ix)))
-        (loop (1+ ix))))
-    res))
 
 (define (wrap-action actn)              ; see util.scm
   (define (mkarg i) (string->symbol (string-append "$" (number->string i))))

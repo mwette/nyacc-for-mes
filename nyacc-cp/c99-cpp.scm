@@ -30,23 +30,14 @@
             eval-cpp-cond-text          ; #if etc
             find-incl-in-dirl           ; #include
             tokenize-cpp-string         ; #define
-            ;; not used directly
             macro-expand-text
-            parse-cpp-expr
-            eval-cpp-expr)
-  #:use-module (ice-9 match)
-  #:use-module ((srfi srfi-1) #:select (append-reverse))
-  #:use-module (rnrs arithmetic bitwise)
+            ;;parse-cpp-expr
+            ;;eval-cpp-expr
+            )
   #:use-module (nyacc-cp parse-min)
   #:use-module (nyacc-cp lex-min)
-  #:use-module (nyacc-cp sx-util)
-  #:use-module ((nyacc-cp tl-util) #:select (report-error)))
-
-(define (sferr fmt . args)
-  (apply simple-format (current-error-port) fmt args))
-(use-modules (ice-9 pretty-print))
-(define* (pperr exp #:optional (plp "  "))
-  (pretty-print exp (current-error-port) #:per-line-prefix plp))
+  #:use-module (nyacc-cp common-utils)
+  #:use-module (nyacc-cp parser-utils))
 
 (define rls reverse-list->string)
 
@@ -318,8 +309,8 @@
             ((mod) (modulo (ev1 tree) (ev2 tree)))
             ((add) (+ (ev1 tree) (ev2 tree)))
             ((sub) (- (ev1 tree) (ev2 tree)))
-            ((lshift) (bitwise-arithmetic-shift-left (ev1 tree) (ev2 tree)))
-            ((rshift) (bitwise-arithmetic-shift-right (ev1 tree) (ev2 tree)))
+            ((lshift) (ash (ev1 tree) (ev2 tree)))
+            ((rshift) (ash (ev1 tree) (- (ev2 tree))))
             ((lt) (if (< (ev1 tree) (ev2 tree)) 1 0))
             ((le) (if (<= (ev1 tree) (ev2 tree)) 1 0))
             ((gt) (if (> (ev1 tree) (ev2 tree)) 1 0))

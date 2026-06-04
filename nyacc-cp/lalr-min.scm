@@ -32,16 +32,12 @@
   #:export (lalr-spec
             make-lalr-machine compact-machine hashify-machine
             process-lalr-spec write-lalr-actions write-lalr-tables)
-  #:use-module ((srfi srfi-1) #:select (fold fold-right remove lset-union
-                                             lset-intersection lset-difference))
-  #:use-module ((srfi srfi-9) #:select (define-record-type)))
-
-(use-modules (ice-9 pretty-print))
-(define (pperr exp)
-  (pretty-print exp (current-error-port) #:per-line-prefix "  "))
-(define (sferr fmt . args)
-  (apply simple-format (current-error-port) fmt args))
-
+  #:use-module ((ice-9 pretty-print) #:select (pretty-print))
+  #:use-module ((srfi srfi-1)
+                #:select (lset-union lset-intersection lset-difference))
+  #:use-module ((srfi srfi-43)
+                #:select (vector-any vector-fold vector-for-each vector-map)
+  #:use-module (nyacc-cp common-utils))
 
 ;; === procedures from (nyacc util) ============================================
 
@@ -77,44 +73,6 @@
             (let loop ((r '(. $rest)) (i 1))
               (if (> i n) r (loop (cons (mk-arg i) r) (1+ i)))))))
     (cons* 'lambda (mk-arg-list (car actn)) (cdr actn))))
-
-(define (vector-any pred? vec)
-  (let ((size (vector-length vec)))
-    (let loop ((ix 0))
-      (cond
-       ((= ix size) #f)
-       ((pred? ix (vector-ref vec ix)) #t)
-       (else (loop (1+ ix)))))))
-
-(define (vector-fold proc seed . vecs)
-  (let ((size (apply min (map vector-length vecs))))
-    (let loop ((seed seed) (ix 0))
-      (cond
-       ((= ix size) seed)
-       (else
-        (loop
-         (apply proc ix seed (map (lambda (v) (vector-ref v ix)) vecs))
-         (1+ ix)))))))
-
-(define (vector-for-each proc . vecs)
-  (let ((size (apply min (map vector-length vecs))))
-    (let loop ((ix 0))
-      (cond
-       ((= ix size) (if #f #f))
-       (else
-        (apply proc ix (map (lambda (v) (vector-ref v ix)) vecs))
-        (loop (1+ ix)))))))
-
-(define (vector-map proc . vecs)
-  (let* ((size (apply min (map vector-length vecs)))
-         (retv (make-vector size)))
-    (let loop ((ix 0))
-      (cond
-       ((= ix size) retv)
-       (else
-        (vector-set! retv ix
-                     (apply proc ix (map (lambda (v) (vector-ref v ix)) vecs)))
-        (loop (1+ ix)))))))
 
 (define (prune-assoc al)
   (let loop ((al1 '()) (al0 al))

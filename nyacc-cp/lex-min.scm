@@ -23,8 +23,7 @@
 ;;; Code:
 
 (define-module (nyacc-cp lex-min)
-  #:export (
-            make-comm-skipper
+  #:export (make-comm-skipper
             make-chseq-reader
             read-c-ident
             read-c-string
@@ -35,10 +34,9 @@
             chseq->canon-map chseq->canon-unmap
             filter-mt remove-mt map-mt
             c:ws c:if c:ir)
-  #:use-module ((srfi srfi-1) #:select (remove append-reverse)))
+  #:use-module (nyacc-cp common-utils)
+  #:use-module (nyacc-cp parser-utils))
 
-(define (sf fmt . args) (apply simple-format #t fmt args))
-  
 ;; @section Constructing Lexical Analyzers
 ;; The @code{lex} module provides a set of procedures to build lexical
 ;; analyzers.  The approach is to first build a set of @defn{readers} for 
@@ -281,7 +279,6 @@
   ;; chl: char list; ty: type; st: state; ch: next char
   ;; st= 10=beg; 20=int; 30=frac; 40=sgn; 50=exp; 60=sfx 70=end
   (let loop ((chl '()) (ty #f) (st 10) (ch ch))
-    ;;(sf "loop st=~S ch=~S ty=~S\n" st ch ty)
     (case st
       ((10) ;; entry
        (cond
