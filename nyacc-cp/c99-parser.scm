@@ -35,8 +35,6 @@
   (incdirs cpi-incs set-cpi-incs!)      ; #includes
   (ptl cpi-ptl set-cpi-ptl!)            ; parent typename list
   (ctl cpi-ctl set-cpi-ctl!)            ; current typename list
-  ;;(inc-tynd cpi-itynd set-cpi-itynd!)   ; a-l of incfile => typenames
-  ;;(inc-defd cpi-idefd set-cpi-idefd!)   ; a-l of incfile => defines
   (blev cpi-blev set-cpi-blev!))        ; curr brace/block level
 
 ;;.@deffn Procedure split-cppdef defstr => form | #f
