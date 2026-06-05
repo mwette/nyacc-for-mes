@@ -1,4 +1,4 @@
-;;; nyacc/c99-mach.scm - C parser grammer
+;;; nyacc-cp/c99-mach.scm - C parser grammer
 
 ;; Copyright (C) 2015-2026 Matthew Wette
 ;;
@@ -6,14 +6,7 @@
 ;; modify it under the terms of the GNU Lesser General Public
 ;; License as published by the Free Software Foundation; either
 ;; version 3 of the License, or (at your option) any later version.
-;;
-;; This library is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; Lesser General Public License for more details.
-;;
-;; You should have received a copy of the GNU Lesser General Public License
-;; along with this library; if not, see <http://www.gnu.org/licenses/>.
+;; See the file LICENSE included with the this distribution.
 
 ;;; Notes:
 
@@ -27,9 +20,6 @@
 ;; See also:
 ;;   http://www.quut.com/c/ANSI-C-grammar-y.html - C11 grammar
 ;;   https://gcc.gnu.org/onlinedocs/gcc/C-Extensions.html#C-Extensions
-
-;;; Changes for mes:
-;;  1) notice must be a single literal
 
 ;;; Code:
 
