@@ -49,7 +49,7 @@
 ;; @end deffn
 (define (report-error fmt args)
   (let ((port (current-error-port)))
-    (simple-format port fmt args)
+    (apply simple-format port fmt args)
     (newline port)
     (for-each
      (lambda (pair)

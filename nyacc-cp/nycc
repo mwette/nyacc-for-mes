@@ -35,7 +35,8 @@ exec guile $0 "$@"
                    (parse-c99 #:debug #f 
                               #:cpp-defs cpp-defs 
                               #:inc-dirs inc-dirs)))))
-    (pretty-print tree)))
+    ;;(pretty-print tree)
+    #t))
 
 (main (cdr (program-arguments)))
 

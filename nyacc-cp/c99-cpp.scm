@@ -49,13 +49,11 @@
      ((string=? (car defs) str) #t)
      (else (loop (cdr defs))))))
 
-(define (c99-std-val str sl)
+(define (c99-std-val str)
   (cond
    ((string=? str "__DATE__") '(($string . "M01 01 2001")))
-   ((string=? str "__FILE__")
-    `(($string . ,(or (assq-ref sl 'filename) "(unknown)"))))
-   ((string=? str "__LINE__")
-    `(($fixed . ,(number->string (or (assq-ref sl 'line) 0)))))
+   ((string=? str "__FILE__") `(($string . "(unknown)")))
+   ((string=? str "__LINE__") `(($fixed . 0)))
    ((string=? str "__TIME__") '(($string . "00:00:00")))
    ((string=? str "__STDC__") '(($fixed . "1")))
    ((string=? str "__STDC_HOSTED__") '(($fixed . "0")))
@@ -291,7 +289,7 @@
           (case (car tree)
             ((fixed) (string->number (cnumstr->scm (tx1 tree))))
             ((char) (char->integer (string-ref (tx1 tree) 0)))
-            ((defined) (if (assoc-ref defs (tx1 tree)) 1 0))
+            ((defined) (if (hash-ref defs (tx1 tree)) 1 0))
             ((has-include)
              (if (find-incl-in-dirl (unesc-c-str (tx1 tree)) inc-dirs #f) 1 0))
             ((has-include-next)
@@ -322,7 +320,7 @@
             ((and) (if (or (zero? (ev1 tree)) (zero? (ev2 tree))) 0 1))
             ((cond-expr) (if (zero? (ev1 tree)) (ev3 tree) (ev2 tree)))
             ;; If ident is not defined it should be zero:
-            ((ident) (if (assoc-ref defs (tx1 tree))
+            ((ident) (if (hash-ref defs (tx1 tree))
                          (throw 'cpp-error "ident not expanded ???")
                          0))
             ((p-expr) (ev1 tree))
@@ -383,7 +381,7 @@
                     (csq (cpp-expand tkl defs uzed '()))
                     (rest (append-reverse csq rest)))
                (loop osq rest))))))
-        ((c99-std-val ident (source-properties (car isq))) =>
+        ((c99-std-val ident) =>
          (lambda (res) (loop (append-reverse res osq) (cdr isq))))
         ((string=? ident "_Pragma")
          (call-with-values (lambda () (get-args '("x") rest))
@@ -645,13 +643,19 @@
 ;; The question is whether to tokenize all cpp-defs
 ;; or keep the strings and convert to tokens on the fly.
 (define (lookup-def defs ident)
-  (let* ((def (assoc ident defs)) (ref (and def (cdr def))))
+  (let ((ref (hash-ref defs ident)))
     (cond
-     ((not ref))                        ; catch ("FOO" . #f)
-     ((null? ref))
-     ((string? ref) (set-cdr! def (tokenize-cpp-string ref)))
-     ((string? (cdr ref)) (set-cdr! ref (tokenize-cpp-string (cdr ref)))))
-    (and ref (cdr def))))
+     ((not ref) ref)
+     ((null? ref) ref)
+     ((string? ref)
+      (let ((ref (tokenize-cpp-string ref)))
+        (hash-set! defs ident ref)
+        ref))
+     ((string? (cdr ref))
+      (let ((ref (cons (car ref) (tokenize-cpp-string (cdr ref)))))
+        (hash-set! defs ident ref)
+        ref))
+     (else ref))))
 
 
 ;; === exports =======================
@@ -685,7 +689,7 @@
 ;; expand text, you must use (with-input-from-string "" ...)
 ;; The argument @var{sp} is source properties (aka location info).
 ;; @end deffn
-(define* (expand-cpp-macro-ref ident defs #:optional (sp '()))
+(define (expand-cpp-macro-ref ident defs)
 
   (define (cleanup seq)
     (let loop ((out '()) (in seq))
@@ -699,7 +703,7 @@
    (cond
     ((lookup-def defs ident)
      (cleanup (cpp-expand `(($ident . ,ident)) defs '() '())))
-    ((c99-std-val ident sp)
+    ((c99-std-val ident)
      => (lambda (s) (list (cons '$string s))))
     (else #f))))
 
@@ -708,7 +712,8 @@
 ;; Evaluate CPP condition expression (text).
 ;; Undefined identifiers are replaced with @code{0}.
 ;; @end deffn
-(define* (eval-cpp-cond-text text #:optional (defs '()) #:key (inc-dirs '()))
+(define no-defs (make-hash-table 7))
+(define* (eval-cpp-cond-text text #:optional (defs no-defs) #:key (inc-dirs '()))
   (with-throw-handler
       'cpp-error
     (lambda ()

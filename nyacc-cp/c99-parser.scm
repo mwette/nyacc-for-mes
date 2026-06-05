@@ -27,7 +27,7 @@
 
 ;; C parser info
 (define-record-type cpi
-  (make-cpi-1)
+  (%make-cpi)
   cpi?
   (debug cpi-debug set-cpi-debug!)      ; debug #t #f
   (shinc cpi-shinc set-cpi-shinc!)      ; show includes
@@ -77,10 +77,13 @@
   (define (split-if-needed def tail)
     (cons (if (pair? def) def (split-cppdef def)) tail))
 
-  (let* ((cpi (make-cpi-1)))
+  (let* ((cpi (%make-cpi))
+         (defs (make-hash-table 16381)))
+    (for-each (lambda (p) (hash-set! defs (car p) (cdr p)))
+              (fold split-if-needed '() defines))
     (set-cpi-debug! cpi debug)          ; print states debug
     (set-cpi-shinc! cpi shinc)          ; print includes
-    (set-cpi-defs! cpi (fold split-if-needed '() defines)) ; def's as pairs
+    (set-cpi-defs! cpi defs)            ; hash table
     (set-cpi-incs! cpi incdirs)         ; list of include dir's
     (set-cpi-ptl! cpi '())              ; list of lists of typenames
     (set-cpi-ctl! cpi '())              ; list of current typenames
@@ -279,12 +282,11 @@
                    (name (car (assq-ref tail 'name)))
                    (args (assq-ref tail 'args))
                    (rtxt (car (assq-ref tail 'repl)))
-                   (rtkl (tokenize-cpp-string rtxt))
-                   (cell (cons name (if args (cons args rtkl) rtkl))))
-              (set-cpi-defs! info (cons cell (cpi-defs info)))))
+                   (rtkl (tokenize-cpp-string rtxt)))
+              (hash-set! (cpi-defs info) name (if args (cons args rtkl) rtkl))))
 
           (define (rem-define name)
-            (set-cpi-defs! info (acons name #f (cpi-defs info))))
+            (hash-remove! (cpi-defs info) name))
 
           (define (inc-stmt->file-spec stmt) ;; retain <> or ""
             (let* ((arg (cadr stmt)))

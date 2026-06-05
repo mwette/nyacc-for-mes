@@ -9,6 +9,7 @@ spots for cpp-defs:
  4. c99-parser.cpp(add-define): 
  5. c99-parser.cpp(rem-define):
 
+max from tcc is about 4248, suggest 9973, NO 16381
 
 ccrun.c:	PASS
 tccdbg.c:	PASS
