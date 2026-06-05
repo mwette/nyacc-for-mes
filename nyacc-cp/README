@@ -7,4 +7,3 @@ nycc is a simple script to run the parser on file
 test-tcc is a script that will compile a bunch of tcc files
 see comments in test-tcc to see how I set it up
 
-
