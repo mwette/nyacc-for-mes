@@ -12,7 +12,13 @@ exec guile $0 "$@"
 (use-modules (nyacc-cp cpp-mach))
 
 (gen-c99-files)
+(system* "mv" "c99-act.scm.new" "c99-act.scm")
+(system* "mv" "c99-tab.scm.new" "c99-tab.scm")
+
 (gen-cpp-files)
+(system* "mv" "cpp-act.scm.new" "cpp-act.scm")
+(system* "mv" "cpp-tab.scm.new" "cpp-tab.scm")
+
 (system* "touch" "c99-parser.scm")
 (system* "touch" "c99-cpp.scm")
 
