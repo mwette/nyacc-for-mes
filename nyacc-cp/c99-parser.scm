@@ -78,7 +78,7 @@
     (cons (if (pair? def) def (split-cppdef def)) tail))
 
   (let* ((cpi (%make-cpi))
-         (defs (make-hash-table 16381)))
+         (defs (make-hash-table 4999)))
     (for-each (lambda (p) (hash-set! defs (car p) (cdr p)))
               (fold split-if-needed '() defines))
     (set-cpi-debug! cpi debug)          ; print states debug
