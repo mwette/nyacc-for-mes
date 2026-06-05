@@ -111,9 +111,9 @@ exec /usr/bin/time --format=user=%U guile $0 "$@"
    tcc-cfiles))
 
 ;;(apply main (cdr (program-arguments)))
-;;(main)
+(main)
 
-(use-modules (statprof))
-(statprof main)
+;;(use-modules (statprof))
+;;(statprof main)
 
 ;; --- last line ---
