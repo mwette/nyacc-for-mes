@@ -192,8 +192,6 @@
 
 ;; @deffn {Procedure} read-cpp-line ch => #f | (cpp-xxxx)??
 ;; Given if ch is #\# read a cpp-statement.
-;; The standard implies that comments are tossed here but we keep them
-;; so that they can end up in the pretty-print output.
 ;; @end deffn
 (define (read-cpp-line ch)
   (if (not (eq? ch #\#)) #f
@@ -212,19 +210,19 @@
                 (if (eq? c2 #\newline)
                     (loop cl (read-char))
                     (loop (cons* c2 ch cl) (read-char))))))
-         ((eq? ch #\/) ;; swallow comments, even w/ newlines
+         ((eq? ch #\/) ;; swallow comments, even w/ newlines FIXME-for-mes
           (let ((c2 (read-char)))
             (cond
              ((eqv? c2 #\*)
-              (let loop2 ((cl2 (cons* #\* #\/ cl)) (ch (read-char)))
+              (let loop2 ((cl2 cl) (ch (read-char)))
                 (cond
                  ((eq? ch #\*)
                   (let ((c2 (read-char)))
                     (if (eqv? c2 #\/)
-                        (loop (cons* #\/ #\* cl2) (read-char)) ;; keep comment
-                        (loop2 (cons #\* cl2) c2))))
+                        (loop cl2 (read-char)) ;; keep comment
+                        (loop2 cl2 c2))))
                  (else
-                  (loop2 (cons ch cl2) (read-char))))))
+                  (loop2 cl2 (read-char))))))
              (else
               (loop (cons #\/ cl) c2)))))
          (else (loop (cons ch cl) (read-char)))))))
@@ -419,7 +417,8 @@
                ((eq? '$ident key)
                 (let ((symb (string->symbol val)))
                   (cond
-                   ((typename? val) (cons t-typename val))
+                   ((typename? val)
+                    (cons t-typename val))
                    ((assq-ref keytab symb)
                     => (lambda (v) (cons v val)))
                    (else (cons t-ident val)))))
@@ -467,7 +466,7 @@
 (define c99-raw-parser
   (make-lalr-parser/num
    (acons 'act-v c99-act-v c99-tables)
-   #:skip-if-unexp '($lone-comm $code-comm $pragma cpp-stmt)
+   #:skip-if-unexp '($pragma)
    #:user-hook (make-user-hook (assq-ref c99-tables 'mtab))))
 
 (define gen-c99-lexer
@@ -509,7 +508,7 @@
 (define* (parse-c99 #:key
                     (cpp-defs '())          ; CPP defines
                     (inc-dirs '())          ; include dirs
-                    (show-incs #f)      ; show include files
+                    (show-incs #f)          ; show include files
                     (return-defs #f)    ; return (values tree defs)
                     (debug #f))         ; debug
   (let ((info (make-cpi debug show-incs cpp-defs (cons "." inc-dirs) '())))

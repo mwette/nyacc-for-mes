@@ -10,7 +10,7 @@
 
 ;;; Notes:
 
-;; This is a C parser, based on ISO-C99, with comments and CPP statements.
+;; This is a C parser, based on ISO-C99
 
 ;; Currentl K&R function definitions are not supported:
 ;;   int f(x) int x; { ... } => syntax error
@@ -33,7 +33,7 @@
 ;; to be able be used for practical purposes so it now parses forms like
 ;; @code{__asm__} and @code{__attribute__}.
 ;; Run this through @code{make-lalr-machine} to get an a-list for the
-;; automaton.  The grammar is modified to parse CPP statements and comments.
+;; automaton.
 ;; The output of the end parser will be a SXML tree (w/o the @code{*TOP*} node.
 ;; @end deffn
 (define c99-spec
@@ -203,16 +203,14 @@ See the file LICENSE included with the this distribution.")
 
     ;; === declarations
 
-    ;; TODO: check if we should move attributes or trap attribute-only spec's
-    (declaration			; S 6.7
-     (declaration-no-comment ";")
-     (declaration-no-comment ";" code-comment ($$ (sx-attr-add $1 $3))))
-
-    (declaration-no-comment
+    (declaration
      (declaration-specifiers
       init-declarator-list
-      ($$ (save-typenames `(decl ,$1 ,$2))))
+      ($$ (save-typenames `(decl ,$1 ,$2)))
+       ";"
+      )
      (declaration-specifiers
+      ";"
       ($$ `(decl ,$1))))
 
     ;; --- declaration specifiers
@@ -387,19 +385,14 @@ See the file LICENSE included with the this distribution.")
     (struct-declaration-list-1
      (struct-declaration ($$ (make-tl 'field-list $1)))
      (struct-declaration-list-1 struct-declaration ($$ (tl-append $1 $2)))
-     (lone-comment ($$ (make-tl 'field-list $1)))
-     (struct-declaration-list-1 lone-comment ($$ (tl-append $1 $2)))
      ;; Not in C99, but allowed by GNU, I believe:
      (";" ($$ (make-tl 'field-list)))
      (struct-declaration-list-1 ";" ($$ $1)))
 
-    (struct-declaration			; S 6.7.2.1
-     (struct-declaration-no-comment ";")
-     (struct-declaration-no-comment ";" code-comment ($$ (sx-attr-add $1 $3))))
-    (struct-declaration-no-comment
+    (struct-declaration
      (specifier-qualifier-list
-      struct-declarator-list ($$ `(comp-decl ,$1 ,(tl->list $2))))
-     (specifier-qualifier-list ($$ `(comp-decl ,$1)))) ;; <= anonymous
+      struct-declarator-list ";" ($$ `(comp-decl ,$1 ,(tl->list $2))))
+     (specifier-qualifier-list ";" ($$ `(comp-decl ,$1)))) ;; <= anonymous
 
     (specifier-qualifier-list		; S 6.7.2.1
      (specifier-qualifier-list-1 ($$ (process-specs (tl->list $1)))))
@@ -734,8 +727,7 @@ See the file LICENSE included with the this distribution.")
      (iteration-statement)
      (jump-statement)
      (asm-statement)
-     (pragma)
-     (cpp-statement))
+     (pragma))
 
     (labeled-statement
      (identifier ":" statement ($$ `(labeled-stmt ,$1 ,$3)))
@@ -862,8 +854,6 @@ See the file LICENSE included with the this distribution.")
     (external-declaration		; S 6.9
      (function-definition)
      (declaration)
-     (lone-comment)
-     (cpp-statement)
      (pragma)
      ("extern" $string "{"
       ($$ (cpi-dec-blev!)) external-declaration-list ($$ (cpi-inc-blev!)) "}"
@@ -900,9 +890,6 @@ See the file LICENSE included with the this distribution.")
     (string-literal-1
      ($string ($$ (make-tl 'string $1))) ; string-constant
      (string-literal-1 $string ($$ (tl-append $1 $2))))
-    (code-comment ($code-comm ($$ `(comment ,$1))))
-    (lone-comment ($lone-comm ($$ `(comment ,$1))))
-    (cpp-statement ('cpp-stmt ($$ `(cpp-stmt ,$1))))
     (pragma ($pragma ($$ `(pragma ,$1)))))))
 
 ;;; === parsers =========================
@@ -912,7 +899,7 @@ See the file LICENSE included with the this distribution.")
    (hashify-machine
     (make-lalr-machine c99-spec))
    #:keep 2
-   #:keepers '($code-comm $lone-comm $pragma cpp-stmt typename $ident)))
+   #:keepers '($pragma typename $ident)))
 
 (define (gen-c99-files)
   (write-lalr-actions c99-mach "c99-act.scm.new" #:prefix "c99-")
