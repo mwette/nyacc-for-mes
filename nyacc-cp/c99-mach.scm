@@ -205,13 +205,8 @@ See the file LICENSE included with the this distribution.")
 
     (declaration
      (declaration-specifiers
-      init-declarator-list
-      ($$ (save-typenames `(decl ,$1 ,$2)))
-       ";"
-      )
-     (declaration-specifiers
-      ";"
-      ($$ `(decl ,$1))))
+      init-declarator-list ($$ (save-typenames `(decl ,$1 ,$2))) ";")
+     (declaration-specifiers ";" ($$ `(decl ,$1))))
 
     ;; --- declaration specifiers
 
