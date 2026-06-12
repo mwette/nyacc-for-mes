@@ -482,24 +482,13 @@
 ;; @i{NAME} or @i{NAME=VALUE}.
 ;; @item #:inc-dirs @i{dir-list}
 ;; @{dir-list} is a list of strings of paths to look for directories.
-;; @item #:inc-help @i{helpers}
-;; @i{helpers} is an a-list where keys are include files (e.g.,
-;; @code{"stdint.h"}) and the value is a list of type aliases or CPP define
-;; (e.g., @code{"foo_t" "FOO_MAX=3"}).
-;; @item #:mode @i{mode}
-;; @i{mode} is one literal @code{'code}, @code{'file}, or @code{'decl}.
-;; The default mode is @code{'code}.
-;; @item #:return-defs @i{bool}
-;; Return two values: the parse tree and the list of CPP definitions.
 ;; @item #:debug @i{bool}
 ;; a boolean which if true prints states from the parser
 ;; @end table
 ;; @example
 ;; (with-input-from-file "abc.c"
 ;;   (parse-c #:cpp-defs '("ABC=123"))
-;;            #:inc-dirs '(("." "./incs" "/usr/include"))
-;;            #:inc-help (append '("myinc.h" "foo_t" "bar_t") c99-std-help)
-;;            #:mode 'file))
+;;            #:inc-dirs '(("." "./incs" "/usr/include")))
 ;; @end example
 ;; Note: for @code{file} mode user still needs to make sure CPP conditional
 ;; expressions can be fully evaluated, which may mean adding compiler generated
@@ -509,8 +498,7 @@
                     (cpp-defs '())          ; CPP defines
                     (inc-dirs '())          ; include dirs
                     (show-incs #f)          ; show include files
-                    (return-defs #f)    ; return (values tree defs)
-                    (debug #f))         ; debug
+                    (debug #f))             ; debug
   (let ((info (make-cpi debug show-incs cpp-defs (cons "." inc-dirs) '())))
     (set-cpi-ptl! info (cons '() (cpi-ptl info)))
     (parameterize ((*info* info)
@@ -518,10 +506,9 @@
       (catch 'c99-error
         (lambda ()
           (catch 'nyacc-error
-            (lambda () (let ((sx (c99-raw-parser
-                                  (gen-c99-lexer #:show-incs show-incs)
-                                  #:debug debug)))
-                         (if return-defs (values sx (cpi-defs info)) sx)))
+            (lambda ()
+              (c99-raw-parser (gen-c99-lexer #:show-incs show-incs)
+                              #:debug debug))
             (lambda (key fmt . args) (apply throw 'c99-error fmt args))))
         (lambda (key fmt . args)
           (report-error fmt args)
