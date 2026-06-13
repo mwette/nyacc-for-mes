@@ -13,8 +13,6 @@
 ;; I need to find way to preserve srconf, rrconf after hashify.
 ;; compact needs to deal with it ...
 
-;; TODO: Revisit error recovery.
-
 ;;; Code:
 
 (define-module (nyacc-cp lalr-min)
@@ -1286,6 +1284,20 @@
      (else res))))
 
 
+;; @deffn {Procedure} conf->str cfl => string
+;; map conflict (e.g., @code{('rrconf 1 . 2}) to string.
+;; @end deffn
+(define (conf->str cfl)
+  (let* ((st (list-ref cfl 0)) (tok (list-ref cfl 1)) (typ (list-ref cfl 2))
+         (core (fluid-ref *lalr-core*)) (terms (core-terminals core)))
+    (fmtstr "in state ~A, ~A conflict on ~A"
+            st
+            (case typ
+              ((srconf) "shift-reduce")
+              ((rrconf) "reduce-reduce")
+              (else "unknown"))
+            (obj->str (find-terminal tok terms)))))
+
 ;; @deffn {Procedure} step4 p-mach-0 => p-mach-1
 ;; This generates the parse action table from the itemsets and then applies
 ;; precedence and associativity rules to eliminate shift-reduce conflicts
@@ -1437,20 +1449,6 @@
            (reverse ftl))))))
     ;; Return mach with parse-action and removed-action tables.
     (cons* (cons 'pat-v pat-v) (cons 'rat-v rat-v) p-mach)))
-
-;; @deffn {Procedure} conf->str cfl => string
-;; map conflict (e.g., @code{('rrconf 1 . 2}) to string.
-;; @end deffn
-(define (conf->str cfl)
-  (let* ((st (list-ref cfl 0)) (tok (list-ref cfl 1)) (typ (list-ref cfl 2))
-         (core (fluid-ref *lalr-core*)) (terms (core-terminals core)))
-    (fmtstr "in state ~A, ~A conflict on ~A"
-            st
-            (case typ
-              ((srconf) "shift-reduce")
-              ((rrconf) "reduce-reduce")
-              (else "unknown"))
-            (obj->str (find-terminal tok terms)))))
 
 ;; @deffn {Procedure} gen-match-table mach => mach
 ;; Generate the match-table for a machine.  The match table is a list of
@@ -1671,12 +1669,6 @@
          mach))))
 
 ;; === output routines ===============
-
-;; @deffn {Procedure} elt->str elt terms => string
-;; @end deffn
-(define (elt->str elt terms)
-  (or (and=> (find-terminal elt terms) obj->str)
-      (symbol->string elt)))
 
 (define* (ugly-print sexp #:optional (port (current-output-port))
                      #:key (per-line-prefix "") (width 79) trim-ends)
