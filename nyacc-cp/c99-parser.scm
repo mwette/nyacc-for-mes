@@ -512,6 +512,6 @@
             (lambda (key fmt . args) (apply throw 'c99-error fmt args))))
         (lambda (key fmt . args)
           (report-error fmt args)
-          (if return-defs (values #f '()) #f))))))
+          #f)))))
 
 ;; --- last line ---
