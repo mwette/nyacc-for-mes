@@ -673,11 +673,10 @@
 ;; ("ABC" . "123")
 ;; ("MAX" ("X" "Y") . "((X)>(Y)?(X):(Y))")
 ;; @end example
-;; @* TODO: think about replacing rhs w/ tokenized form
+;; where the rightmost term may be tokenized.
 ;; @noindent
 ;; Note that this routine will look in the current-input so if you want to
 ;; expand text, you must use (with-input-from-string "" ...)
-;; The argument @var{sp} is source properties (aka location info).
 ;; @end deffn
 (define (expand-cpp-macro-ref ident defs)
 
@@ -702,52 +701,16 @@
 ;; Evaluate CPP condition expression (text).
 ;; Undefined identifiers are replaced with @code{0}.
 ;; @end deffn
-(define no-defs (make-hash-table 7))
-(define* (eval-cpp-cond-text text #:optional (defs no-defs) #:key (inc-dirs '()))
+(define* (eval-cpp-cond-text text #:optional (defs #f) #:key (inc-dirs '()))
   (with-throw-handler
       'cpp-error
     (lambda ()
-      (let* ((repl (macro-expand-text text defs))
+      (let* ((defs (if defs defs (make-hash-table 7)))
+             (repl (macro-expand-text text defs))
              (exp (parse-cpp-expr repl)))
         (eval-cpp-expr exp defs #:inc-dirs inc-dirs)))
     (lambda (key fmt . args)
       (report-error fmt args)
       (throw 'c99-error "CPP error"))))
-
-
-;; =============================================================================
-;; deprecated code
-
-;; @deffn {Procedure} expand-cpp-name name defs [sp]=> repl | #f
-;; Calls @code{expand-cpp-macro-ref} with null input string (w/o further
-;; input).  If @var{name} is has a function definition @code{#f} is returned.
-;; @var{sp} is optional source properties
-;; @end deffn
-(define (expand-cpp-name name defs sp)
-  (with-input-from-string ""
-    (lambda () (expand-cpp-macro-ref name defs))))
-
-;; @deffn {Procedure} skip-cpp-macro-ref name defs
-;; Like @code{expand-cpp-macro-ref} but skip over the reference.
-;; @* may not catch strings w/ non-matching parens
-;; @end deffn
-(define (skip-cpp-macro-ref name defs)
-  "- Procedure: skip-cpp-macro-ref name defs
-     Like ‘expand-cpp-macro-ref’ but skip over the reference.
-     may not catch strings w/ non-matching parens"
-  (let ((rval (lookup-def defs name)))
-    (and
-     (pair? rval)
-     (let loop ((ch (read-char)))
-       (cond ((eof-object? ch) (throw 'c99-error "eof when expecting `('"))
-             ((char-whitespace? ch) (loop (read-char)))
-             ((char=? ch #\() #t)
-             (else (unread-char ch) #f)))
-     (let loop ((lv 0) (ch (read-char)))
-       (cond ((eof-object? ch) (throw 'c99-error "expecting `)'"))
-             ((char=? #\( ch) (loop (1+ lv) (read-char)))
-             ((char=? #\) ch) (if (zero? lv) #f (loop (1- lv) (read-char))))
-             (else (loop lv (read-char))))))))
-
 
 ;; --- last line ---
