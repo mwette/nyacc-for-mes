@@ -5,7 +5,7 @@
 GUILE_LOAD_PATH=/home/mwette/proj/nyacc/nyacc-for-mes
 export GUILE_LOAD_PATH
 
-exec /usr/bin/time --format=user=%U guile $0 "$@"
+exec /usr/bin/time --format="user=%U real=%e" guile $0 "$@"
 #exec guile $0 "$@"
 !#
 
